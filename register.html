@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Couple — Реєстрація ❤️</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #ffe4ec, #fff);
+        }
+
+        .box {
+            width: 90%;
+            max-width: 400px;
+            padding: 30px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,.12);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 14px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #ff6f91;
+            color: white;
+            font-size: 17px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: .9;
+        }
+
+        .message {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .login {
+            display: block;
+            margin-top: 20px;
+            text-align: center;
+            color: #ff5c83;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="box">
+
+    <h1>Створити акаунт ❤️</h1>
+
+    <form id="registerForm">
+
+        <input
+            type="text"
+            id="name"
+            placeholder="Твоє ім'я"
+            required
+        >
+
+        <input
+            type="email"
+            id="email"
+            placeholder="Email"
+            required
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Пароль"
+            minlength="6"
+            required
+        >
+
+        <input
+            type="password"
+            id="password2"
+            placeholder="Повторіть пароль"
+            minlength="6"
+            required
+        >
+
+        <button type="submit">
+            Зареєструватися ❤️
+        </button>
+
+    </form>
+
+    <div class="message" id="message"></div>
+
+    <a class="login" href="login.html">
+        Вже маєте акаунт? Увійти
+    </a>
+
+</div>
+
+<script>
+
+const form = document.getElementById("registerForm");
+const message = document.getElementById("message");
+
+form.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const password2 = document.getElementById("password2").value;
+
+    if (password !== password2) {
+        message.textContent = "❌ Паролі не збігаються";
+        return;
+    }
+
+    message.textContent = "Реєстрація...";
+
+    const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+            data: {
+                name: name
+            }
+        }
+    });
+
+    if (error) {
+        message.textContent = "❌ " + error.message;
+        return;
+    }
+
+    message.textContent =
+        "✅ Реєстрація успішна! Перевірте свою електронну пошту.";
+
+});
+
+</script>
+
+</body>
+</html>
