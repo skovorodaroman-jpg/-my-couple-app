@@ -159,9 +159,6 @@ form.addEventListener("submit", async (event) => {
             throw new Error("Бібліотека Supabase не завантажилася");
         }
 
-        if (!window.supabaseClient) {
-            throw new Error("supabaseClient не створений. Перевірте supabase.js");
-        }
 
         message.textContent = "🔄 Підключення до Supabase...";
 
