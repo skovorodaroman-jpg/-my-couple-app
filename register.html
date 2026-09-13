@@ -1,4 +1,4 @@
-       <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
@@ -6,8 +6,8 @@
 
     <title>My Couple — Реєстрація ❤️</title>
 
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase.js"></script>
 
     <style>
         * {
@@ -58,8 +58,8 @@
             cursor: pointer;
         }
 
-        button:hover {
-            opacity: .9;
+        button:disabled {
+            opacity: 0.6;
         }
 
         .message {
@@ -129,8 +129,17 @@
 
 </div>
 
-
 <script>
+
+const SUPABASE_URL = "https://uozokpguesqeiprxnijm.supabase.co";
+
+// ВСТАВ СЮДИ СВІЙ СПРАВЖНІЙ sb_publishable_ КЛЮЧ
+const SUPABASE_KEY = "ТУТ_ТВІЙ_SB_PUBLISHABLE_KEY";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
 
 const form = document.getElementById("registerForm");
 const message = document.getElementById("message");
@@ -151,26 +160,11 @@ form.addEventListener("submit", async (event) => {
     }
 
     button.disabled = true;
-    message.textContent = "🔄 Перевіряємо підключення...";
+    message.textContent = "🔄 Реєструємо акаунт...";
 
     try {
 
-        if (!window.supabase) {
-            throw new Error("Бібліотека Supabase не завантажилася");
-        }
-
-
-        message.textContent = "🔄 Підключення до Supabase...";
-
-        const timeout = new Promise((_, reject) => {
-            setTimeout(() => {
-                reject(new Error(
-                    "Supabase не відповів протягом 15 секунд. Перевіряємо підключення."
-                ));
-            }, 15000);
-        });
-
-        const signup = window.supabaseClient.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
@@ -180,25 +174,19 @@ form.addEventListener("submit", async (event) => {
             }
         });
 
-        const result = await Promise.race([
-            signup,
-            timeout
-        ]);
-
-        const { data, error } = result;
+        console.log("Supabase:", data, error);
 
         if (error) {
             message.textContent = "❌ " + error.message;
-            button.disabled = false;
             return;
         }
 
         if (data && data.user) {
             message.textContent =
-                "✅ Акаунт створено! Перевірте електронну пошту.";
+                "✅ Акаунт створено! Перевірте свою електронну пошту.";
         } else {
             message.textContent =
-                "⚠️ Supabase не повернув дані користувача.";
+                "⚠️ Не вдалося отримати дані користувача.";
         }
 
     } catch (error) {
