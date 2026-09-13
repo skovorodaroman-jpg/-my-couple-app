@@ -170,7 +170,7 @@ form.addEventListener("submit", async (event) => {
             }, 15000);
         });
 
-        const signup = supabaseClient.auth.signUp({
+        const signup = window.supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
