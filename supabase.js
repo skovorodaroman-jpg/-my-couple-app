@@ -14,5 +14,8 @@ if (!window.supabase) {
         SUPABASE_KEY
     );
 
-    console.log("3. supabaseClient =", window.supabaseClient);
+    console.log(
+        "3. supabaseClient =",
+        window.supabaseClient
+    );
 }
