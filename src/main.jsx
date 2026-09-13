@@ -21,4 +21,27 @@ function App(){
  {t==='profile'&&<><small>ВАШ ПРОСТІР</small><h1>Профіль ❤️</h1><div className="card profile"><div className="big">😊</div><h2>Lemon & Partner</h2><p>Разом з 14 червня 2025</p><div className="code"><span>Код вашої пари</span><b>LOVE-7K92</b><button onClick={()=>navigator.clipboard?.writeText('LOVE-7K92')}>Копіювати</button></div><div className="row">Спільні моменти <b>{moments.length}</b></div><div className="row">Спільні цілі <b>1</b></div><button className="secondary wide">Налаштування</button></div></>}
  </main>
  <nav>{nav.map(([id,l,I])=><button className={t===id?'active':''} onClick={()=>setT(id)} key={id}><I/><span>{l}</span></button>)}</nav></div>}
-createRoot(document.getElementById('root')).render(<App/>);
+const supabaseClient = window.supabaseClient;
+
+async function startApp() {
+    if (!supabaseClient) {
+        document.body.innerHTML = `
+            <div style="padding:30px;text-align:center;font-family:Arial">
+                ❌ Помилка підключення Supabase
+            </div>
+        `;
+        return;
+    }
+
+    const { data: { session } } =
+        await supabaseClient.auth.getSession();
+
+    if (!session) {
+        window.location.href = "/login.html";
+        return;
+    }
+
+    createRoot(document.getElementById('root')).render(<App />);
+}
+
+startApp();
