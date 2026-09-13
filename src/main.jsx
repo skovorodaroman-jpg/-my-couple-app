@@ -532,10 +532,21 @@ function App() {
                                 Спільні цілі
                                 <b>1</b>
                             </div>
+<button
+    className="secondary wide"
+    onClick={async () => {
+        const { error } = await supabaseClient.auth.signOut();
 
-                            <button className="secondary wide">
-                                Налаштування
-                            </button>
+        if (error) {
+            alert("❌ Не вдалося вийти: " + error.message);
+            return;
+        }
+
+        window.location.href = "/login.html";
+    }}
+>
+    🚪 Вийти з акаунта
+</button>
 
                         </div>
                     </>
