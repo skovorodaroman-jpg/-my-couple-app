@@ -1,740 +1,735 @@
-import React, { useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import {
-    Heart,
-    Camera,
-    Gift,
-    CalendarDays,
-    Sparkles,
-    UserRound,
-    Plus,
-    Lock,
-    Dice5,
-    Check,
-    Send
-} from 'lucide-react';
-
-import './style.css';
-
-
-/* ============================= */
-/* ІДЕЇ ТА ПИТАННЯ */
-/* ============================= */
-
-const ideas = [
-    [
-        'Вечір без телефонів',
-        '🍕 Улюблена їжа → 🎬 фільм → 💬 3 речі, за які ви вдячні одне одному.'
-    ],
-    [
-        'Полювання за спогадами',
-        '📸 Знайдіть 5 місць, пов’язаних з вашими спогадами, і зробіть фото.'
-    ],
-    [
-        'Домашнє кафе',
-        '☕ Приготуйте одне одному напій, десерт і влаштуйте побачення вдома.'
-    ],
-    [
-        'Нічна прогулянка',
-        '🌙 Вийдіть ввечері, виберіть новий маршрут і поговоріть без телефонів.'
-    ]
-];
-
-const questions = [
-    'Який наш момент ти ніколи не забудеш?',
-    'Куди ти найбільше хочеш поїхати зі мною?',
-    'Що тобі найбільше подобається в наших стосунках?',
-    'Яке побачення ти мрієш зі мною провести?'
-];
-
-
-/* ============================= */
-/* ПОЧАТКОВІ ДАНІ */
-/* ============================= */
+import React, { useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
 
 const defaultData = {
     moments: [
         {
-            title: 'Наш перший момент',
-            date: '14 вересня 2025',
-            text: 'Той день, коли все почалося ❤️'
+            title: "Наш перший момент ❤️",
+            date: "14 вересня 2025",
+            text: "Той день, коли все почалося ❤️"
         }
     ],
-
     events: [
         {
-            title: 'Наша річниця ❤️',
-            date: '14 жовтня 2026',
+            title: "Наша річниця ❤️",
+            date: "14 жовтня 2026",
             days: 31
         }
     ],
-
     idea: 0
 };
 
+const ideas = [
+    "Зробіть разом сніданок 🥞",
+    "Влаштуйте вечір фільмів 🎬",
+    "Прогуляйтеся разом 🌹",
+    "Зробіть спільне фото 📸",
+    "Напишіть одне одному по 5 приємних слів ❤️",
+    "Влаштуйте романтичну вечерю 🕯️",
+    "Згадайте ваш найкращий день разом 💕",
+    "Пограйте разом у якусь гру 🎮",
+    "Підіть у нове для вас місце 🌍",
+    "Зробіть один одному маленький подарунок 🎁"
+];
 
-/* ============================= */
-/* APP */
-/* ============================= */
+const questions = [
+    "Що тобі найбільше подобається в наших стосунках?",
+    "Який наш спільний момент ти ніколи не забудеш?",
+    "Куди ти хочеш поїхати зі мною?",
+    "Яке наше побачення було для тебе найкращим?",
+    "Що ти хочеш зробити разом цього року?",
+    "Яка моя риса тобі подобається найбільше?",
+    "Яка наша спільна мрія?",
+    "Що змушує тебе посміхатися, коли ти думаєш про мене?"
+];
 
 function App({ coupleId, inviteCode, initialData }) {
-
-    const [t, setT] = useState('home');
-
     const [moments, setMoments] = useState(
-        initialData.moments || defaultData.moments
+        initialData?.moments || defaultData.moments
     );
 
     const [events, setEvents] = useState(
-        initialData.events || defaultData.events
+        initialData?.events || defaultData.events
     );
 
     const [idea, setIdea] = useState(
-        typeof initialData.idea === 'number'
-            ? initialData.idea
-            : 0
+        initialData?.idea ?? defaultData.idea
     );
 
-    const [newM, setNewM] = useState({
-        title: '',
-        date: '',
-        text: ''
+    const [newMoment, setNewMoment] = useState({
+        title: "",
+        date: "",
+        text: ""
     });
 
-    const [form, setForm] = useState(false);
-
-    const [q, setQ] = useState(0);
-    const [answer, setAnswer] = useState('');
+    const [question, setQuestion] = useState("");
+    const [answer, setAnswer] = useState("");
     const [sent, setSent] = useState(false);
 
-    const [miss, setMiss] = useState(false);
     const [surprise, setSurprise] = useState(false);
 
-
-    /* ============================= */
-    /* ЗБЕРЕЖЕННЯ ДАНИХ */
-    /* ============================= */
-
+    // Зберігаємо дані в Supabase
     useEffect(() => {
+        if (!coupleId) return;
 
         const timer = setTimeout(async () => {
-
             const dataToSave = {
                 moments,
                 events,
                 idea
             };
 
-            const { error } = await supabaseClient
-                .from('couple_data')
+            const { error } = await window.supabaseClient
+                .from("couple_data")
                 .update({
                     data: dataToSave,
                     updated_at: new Date().toISOString()
                 })
-                .eq('couple_id', coupleId);
+                .eq("couple_id", coupleId);
 
             if (error) {
-                console.error(
-                    '❌ Помилка збереження:',
-                    error
-                );
+                console.error("Помилка збереження:", error);
             } else {
-                console.log('✅ Дані пари збережено');
+                console.log("✅ Дані пари збережено");
             }
-
-        }, 500);
+        }, 700);
 
         return () => clearTimeout(timer);
-
     }, [moments, events, idea, coupleId]);
 
+    function addMoment(event) {
+        event.preventDefault();
 
-    /* ============================= */
-    /* ДОДАТИ МОМЕНТ */
-    /* ============================= */
-
-    const add = () => {
-
-        if (!newM.title.trim()) {
+        if (!newMoment.title.trim()) {
+            alert("Введи назву моменту ❤️");
             return;
         }
 
-        setMoments([
-            ...moments,
-            {
-                title: newM.title,
-                date: newM.date,
-                text: newM.text
-            }
-        ]);
+        const moment = {
+            title: newMoment.title,
+            date: newMoment.date,
+            text: newMoment.text
+        };
 
-        setNewM({
-            title: '',
-            date: '',
-            text: ''
+        setMoments((prev) => [...prev, moment]);
+
+        setNewMoment({
+            title: "",
+            date: "",
+            text: ""
         });
+    }
 
-        setForm(false);
-    };
+    function removeMoment(index) {
+        if (!confirm("Видалити цей момент?")) return;
 
+        setMoments((prev) =>
+            prev.filter((_, i) => i !== index)
+        );
+    }
 
-    /* ============================= */
-    /* НАВІГАЦІЯ */
-    /* ============================= */
+    function nextIdea() {
+        setIdea((prev) => (prev + 1) % ideas.length);
+    }
 
-    const nav = [
-        ['home', 'Головна', Heart],
-        ['moments', 'Моменти', Camera],
-        ['dates', 'Побачення', Sparkles],
-        ['surprises', 'Сюрпризи', Gift],
-        ['profile', 'Профіль', UserRound]
-    ];
+    function chooseQuestion() {
+        const random =
+            questions[Math.floor(Math.random() * questions.length)];
 
+        setQuestion(random);
+        setAnswer("");
+        setSent(false);
+    }
+
+    function sendAnswer() {
+        if (!answer.trim()) return;
+
+        setSent(true);
+    }
+
+    function logout() {
+        window.supabaseClient.auth.signOut().then(() => {
+            window.location.href = "/login.html";
+        });
+    }
 
     return (
         <div className="app">
 
-            <header>
-
-                <div className="logo">
-                    <Heart fill="currentColor" />
-                    Ми
+            <header className="header">
+                <div>
+                    <h1>Ми ❤️</h1>
+                    <p>Наш маленький світ</p>
                 </div>
 
-                <div className="status">
-                    ● разом
-                </div>
-
+                <button className="logout" onClick={logout}>
+                    Вийти
+                </button>
             </header>
-
 
             <main>
 
+                {/* Профіль пари */}
+                <section className="card profile-card">
+                    <div className="heart">❤️</div>
 
-                {/* ============================= */}
-                {/* ГОЛОВНА */}
-                {/* ============================= */}
+                    <h2>Наша пара</h2>
 
-                {t === 'home' && (
-                    <>
+                    <p className="muted">
+                        Код вашої пари
+                    </p>
 
-                        <section className="hero">
+                    <div className="code">
+                        {inviteCode || "Завантаження..."}
+                    </div>
 
-                            <div className="avatars">
-                                <span>😊</span>
-                                <i>❤️</i>
-                                <span>🥰</span>
-                            </div>
+                    <p className="hint">
+                        Передайте цей код своїй коханій людині,
+                        щоб вона могла приєднатися до вашої пари.
+                    </p>
+                </section>
 
-                            <small>
-                                Ви разом
-                            </small>
 
-                            <h1>
-                                1 рік 4 місяці
-                            </h1>
+                {/* Наші моменти */}
+                <section className="card">
+                    <h2>💕 Наші моменти</h2>
 
-                            <p>
-                                Кожен день — ще одна сторінка вашої історії.
+                    <div className="moments">
+
+                        {moments.length === 0 && (
+                            <p className="muted">
+                                Поки що моментів немає ❤️
                             </p>
+                        )}
 
-                        </section>
+                        {moments.map((moment, index) => (
+                            <div className="moment" key={index}>
 
-
-                        <section className="card question">
-
-                            <div className="eyebrow">
-                                ✨ ПИТАННЯ ДНЯ
-                            </div>
-
-                            <h2>
-                                {questions[q]}
-                            </h2>
-
-
-                            {!sent ? (
-
-                                <>
-
-                                    <textarea
-                                        value={answer}
-                                        onChange={(e) =>
-                                            setAnswer(e.target.value)
-                                        }
-                                        placeholder="Напиши свою відповідь..."
-                                    />
+                                <div className="moment-top">
+                                    <h3>{moment.title}</h3>
 
                                     <button
-                                        className="primary"
+                                        className="delete"
                                         onClick={() =>
-                                            setSent(true)
+                                            removeMoment(index)
                                         }
                                     >
-                                        <Send />
-                                        Відповісти
+                                        ×
                                     </button>
-
-                                </>
-
-                            ) : (
-
-                                <div className="success">
-
-                                    <Check />
-
-                                    Відповідь збережено.
-                                    Тепер чекаємо на партнера ❤️
-
                                 </div>
 
-                            )}
+                                {moment.date && (
+                                    <div className="date">
+                                        📅 {moment.date}
+                                    </div>
+                                )}
 
-
-                            <button
-                                className="link"
-                                onClick={() => {
-
-                                    setQ(
-                                        (q + 1) %
-                                        questions.length
-                                    );
-
-                                    setAnswer('');
-                                    setSent(false);
-
-                                }}
-                            >
-                                Інше питання
-                            </button>
-
-                        </section>
-
-
-                        <div className="grid">
-
-                            <button
-                                className="card tile"
-                                onClick={() =>
-                                    setT('moments')
-                                }
-                            >
-
-                                <Camera />
-
-                                <b>
-                                    {moments.length}
-                                </b>
-
-                                <span>
-                                    Моменти
-                                </span>
-
-                            </button>
-
-
-                            <button
-                                className="card tile"
-                                onClick={() =>
-                                    setT('surprises')
-                                }
-                            >
-
-                                <Gift />
-
-                                <b>
-                                    1
-                                </b>
-
-                                <span>
-                                    Сюрприз
-                                </span>
-
-                            </button>
-
-
-                            <button
-                                className="card tile"
-                                onClick={() =>
-                                    setT('dates')
-                                }
-                            >
-
-                                <CalendarDays />
-
-                                <b>
-                                    {events[0]?.days || 0}
-                                </b>
-
-                                <span>
-                                    днів до події
-                                </span>
-
-                            </button>
-
-
-                            <button
-                                className="card tile"
-                                onClick={() =>
-                                    setMiss(true)
-                                }
-                            >
-
-                                <Heart />
-
-                                <b>
-                                    🥺
-                                </b>
-
-                                <span>
-                                    Я сумую
-                                </span>
-
-                            </button>
-
-                        </div>
-
-
-                        {miss && (
-
-                            <div className="toast">
-
-                                💌 Повідомлення партнеру надіслано
-
-                                <button
-                                    onClick={() =>
-                                        setMiss(false)
-                                    }
-                                >
-                                    ×
-                                </button>
-
+                                {moment.text && (
+                                    <p>{moment.text}</p>
+                                )}
                             </div>
+                        ))}
 
-                        )}
+                    </div>
 
-                    </>
-                )}
+                    <form
+                        className="form"
+                        onSubmit={addMoment}
+                    >
+                        <h3>Додати момент ❤️</h3>
+
+                        <input
+                            type="text"
+                            placeholder="Назва моменту"
+                            value={newMoment.title}
+                            onChange={(e) =>
+                                setNewMoment({
+                                    ...newMoment,
+                                    title: e.target.value
+                                })
+                            }
+                        />
+
+                        <input
+                            type="text"
+                            placeholder="Дата"
+                            value={newMoment.date}
+                            onChange={(e) =>
+                                setNewMoment({
+                                    ...newMoment,
+                                    date: e.target.value
+                                })
+                            }
+                        />
+
+                        <textarea
+                            placeholder="Розкажіть про цей момент..."
+                            value={newMoment.text}
+                            onChange={(e) =>
+                                setNewMoment({
+                                    ...newMoment,
+                                    text: e.target.value
+                                })
+                            }
+                        />
+
+                        <button
+                            className="primary"
+                            type="submit"
+                        >
+                            Додати момент ❤️
+                        </button>
+                    </form>
+                </section>
 
 
-                {/* ============================= */}
-                {/* МОМЕНТИ */}
-                {/* ============================= */}
+                {/* Події */}
+                <section className="card">
+                    <h2>📅 Наші події</h2>
 
-                {t === 'moments' && (
-                    <>
-
-                        <div className="heading">
-
+                    {events.map((event, index) => (
+                        <div
+                            className="event"
+                            key={index}
+                        >
                             <div>
+                                <h3>{event.title}</h3>
 
-                                <small>
-                                    ВАША ІСТОРІЯ
-                                </small>
-
-                                <h1>
-                                    Наші моменти ❤️
-                                </h1>
-
+                                <p>
+                                    {event.date}
+                                </p>
                             </div>
 
-
-                            <button
-                                className="round"
-                                onClick={() =>
-                                    setForm(!form)
-                                }
-                            >
-                                <Plus />
-                            </button>
-
+                            <div className="days">
+                                {event.days}
+                                <span>днів</span>
+                            </div>
                         </div>
+                    ))}
+                </section>
 
 
-                        {form && (
+                {/* Ідея для побачення */}
+                <section className="card idea-card">
 
-                            <div className="card form">
+                    <h2>💡 Ідея для нас</h2>
 
-                                <input
-                                    placeholder="Назва"
-                                    value={newM.title}
-                                    onChange={(e) =>
-                                        setNewM({
-                                            ...newM,
-                                            title: e.target.value
-                                        })
-                                    }
-                                />
+                    <div className="idea">
+                        {ideas[idea]}
+                    </div>
 
+                    <button
+                        className="primary"
+                        onClick={nextIdea}
+                    >
+                        Інша ідея ✨
+                    </button>
 
-                                <input
-                                    placeholder="Дата"
-                                    value={newM.date}
-                                    onChange={(e) =>
-                                        setNewM({
-                                            ...newM,
-                                            date: e.target.value
-                                        })
-                                    }
-                                />
+                </section>
 
 
-                                <textarea
-                                    placeholder="Опишіть момент"
-                                    value={newM.text}
-                                    onChange={(e) =>
-                                        setNewM({
-                                            ...newM,
-                                            text: e.target.value
-                                        })
-                                    }
-                                />
+                {/* Питання для пари */}
+                <section className="card">
 
+                    <h2>💬 Питання для нас</h2>
 
-                                <button
-                                    className="primary"
-                                    onClick={add}
-                                >
-                                    Зберегти ❤️
-                                </button>
-
-                            </div>
-
-                        )}
-
-
-                        <div className="list">
-
-                            {moments.map((m, i) => (
-
-                                <article
-                                    className="card moment"
-                                    key={i}
-                                >
-
-                                    <div className="momentPic">
-                                        ❤️
-                                    </div>
-
-
-                                    <div>
-
-                                        <h3>
-                                            {m.title}
-                                        </h3>
-
-                                        <small>
-                                            {m.date}
-                                        </small>
-
-                                        <p>
-                                            {m.text}
-                                        </p>
-
-                                    </div>
-
-                                </article>
-
-                            ))}
-
-                        </div>
-
-                    </>
-                )}
-
-
-                {/* ============================= */}
-                {/* ПОБАЧЕННЯ */}
-                {/* ============================= */}
-
-                {t === 'dates' && (
-                    <>
-
-                        <small>
-                            ПОБАЧЕННЯ
-                        </small>
-
-                        <h1>
-                            Що зробимо разом?
-                        </h1>
-
-
-                        <div className="card date">
-
-                            <div className="dateIcon">
-                                ✨
-                            </div>
-
-                            <h2>
-                                {ideas[idea][0]}
-                            </h2>
-
-                            <p>
-                                {ideas[idea][1]}
+                    {!question ? (
+                        <>
+                            <p className="muted">
+                                Оберіть випадкове питання
+                                та поговоріть про нього разом ❤️
                             </p>
-
 
                             <button
                                 className="primary"
-                                onClick={() =>
-                                    setIdea(
-                                        (idea + 1) %
-                                        ideas.length
-                                    )
-                                }
+                                onClick={chooseQuestion}
                             >
-                                <Dice5 />
-                                Інша ідея
+                                Отримати питання 💕
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="question">
+                                {question}
+                            </div>
+
+                            <textarea
+                                placeholder="Ваша відповідь..."
+                                value={answer}
+                                onChange={(e) =>
+                                    setAnswer(e.target.value)
+                                }
+                            />
+
+                            <button
+                                className="primary"
+                                onClick={sendAnswer}
+                            >
+                                Зберегти відповідь ❤️
                             </button>
 
+                            {sent && (
+                                <div className="success">
+                                    ❤️ Відповідь збережено!
+                                </div>
+                            )}
 
-                            <button className="secondary">
-                                ❤️ Зберегти
+                            <button
+                                className="secondary"
+                                onClick={chooseQuestion}
+                            >
+                                Інше питання
                             </button>
+                        </>
+                    )}
 
-                        </div>
+                </section>
 
 
-                        <div className="card mini">
+                {/* Сюрприз */}
+                <section className="card surprise-card">
 
-                            <b>
-                                🎯 Ціль пари
-                            </b>
+                    <h2>🎁 Маленький сюрприз</h2>
 
+                    {!surprise ? (
+                        <>
                             <p>
-                                Провести 20 побачень
+                                Тут є щось особливе для тебе...
                             </p>
 
-                            <div className="progress">
-
-                                <span
-                                    style={{
-                                        width: '35%'
-                                    }}
-                                />
-
+                            <button
+                                className="primary"
+                                onClick={() => setSurprise(true)}
+                            >
+                                Відкрити ❤️
+                            </button>
+                        </>
+                    ) : (
+                        <div className="surprise">
+                            <div className="big-heart">
+                                ❤️
                             </div>
 
-                            <small>
-                                7 з 20
-                            </small>
-
-                        </div>
-
-                    </>
-                )}
-
-
-                {/* ============================= */}
-                {/* СЮРПРИЗИ */}
-                {/* ============================= */}
-
-                {t === 'surprises' && (
-                    <>
-
-                        <small>
-                            ПРИВАТНО
-                        </small>
-
-                        <h1>
-                            Сюрпризи 🎁
-                        </h1>
-
-
-                        <div className="card locked">
-
-                            <Lock />
-
-                            <div>
-
-                                <h3>
-                                    Для тебе є сюрприз
-                                </h3>
-
-                                <p>
-                                    🔐 Відкриється 14 жовтня о 20:00
-                                </p>
-
-                            </div>
-
-                        </div>
-
-
-                        {surprise && (
-
-                            <div className="card form">
-
-                                <input
-                                    placeholder="Заголовок сюрпризу"
-                                />
-
-                                <textarea
-                                    placeholder="Текст, який побачить партнер"
-                                />
-
-                                <input
-                                    type="datetime-local"
-                                />
-
-                                <button
-                                    className="primary"
-                                    onClick={() =>
-                                        setSurprise(false)
-                                    }
-                                >
-                                    Створити сюрприз
-                                </button>
-
-                            </div>
-
-                        )}
-
-
-                        <button
-                            className="primary wide"
-                            onClick={() =>
-                                setSurprise(true)
-                            }
-                        >
-                            <Plus />
-                            Створити сюрприз
-                        </button>
-
-                    </>
-                )}
-
-
-                {/* ============================= */}
-                {/* ПРОФІЛЬ */}
-                {/* ============================= */}
-
-                {t === 'profile' && (
-                    <>
-
-                        <small>
-                            ВАШ ПРОСТІР
-                        </small>
-
-                        <h1>
-                            Профіль ❤️
-                        </h1>
-
-
-                        <div className="card profile">
-
-                            <div className="big">
-                                😊
-                            </div>
-
-
-                            <h2>
-                                Lemon & Partner
-                            </h2>
-
+                            <h3>
+                                Я тебе дуже сильно люблю! 🥰
+                            </h3>
 
                             <p>
-                                Разом з 14 червня 2025
+                                Дякую тобі за кожен наш день,
+                                кожну посмішку і кожну мить разом.
+                                Нехай таких моментів буде ще
+                                дуже-дуже багато ❤️
                             </p>
+                        </div>
+                    )}
+
+                </section>
+
+            </main>
+
+            <footer>
+                <p>
+                    Зроблено з любов'ю ❤️
+                </p>
+            </footer>
+
+        </div>
+    );
+}
 
 
-                            <div className="code">
-                    
+async function startApp() {
+
+    console.log("🚀 Запуск My Couple...");
+
+    if (!window.supabaseClient) {
+        console.error("❌ Supabase Client не знайдений");
+
+        document.body.innerHTML = `
+            <div style="
+                padding:40px;
+                text-align:center;
+                font-family:Arial;
+            ">
+                <h2>❌ Помилка Supabase</h2>
+                <p>Не вдалося завантажити Supabase.</p>
+                <button onclick="location.reload()">
+                    Оновити сторінку
+                </button>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    // =========================================
+    // 1. Перевіряємо авторизацію
+    // =========================================
+
+    const {
+        data: sessionData,
+        error: sessionError
+    } = await window.supabaseClient.auth.getSession();
+
+    if (sessionError) {
+        console.error(
+            "Помилка отримання сесії:",
+            sessionError
+        );
+
+        window.location.href = "/login.html";
+        return;
+    }
+
+    const session = sessionData?.session;
+
+    if (!session) {
+        console.log("❌ Користувач не авторизований");
+
+        window.location.href = "/login.html";
+        return;
+    }
+
+    const user = session.user;
+
+    console.log("✅ Користувач авторизований:", user.id);
+
+
+    // =========================================
+    // 2. Шукаємо існуючу пару
+    // =========================================
+
+    let coupleId = null;
+    let inviteCode = null;
+    let initialData = null;
+
+    const {
+        data: membership,
+        error: membershipError
+    } = await window.supabaseClient
+        .from("couple_members")
+        .select("couple_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+
+    if (membershipError) {
+
+        console.error(
+            "Помилка пошуку пари:",
+            membershipError
+        );
+
+        document.body.innerHTML = `
+            <div style="
+                padding:40px;
+                text-align:center;
+                font-family:Arial;
+            ">
+                <h2>❌ Не вдалося завантажити пару</h2>
+
+                <p>
+                    ${membershipError.message}
+                </p>
+
+                <button onclick="location.reload()">
+                    Спробувати ще раз
+                </button>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    // =========================================
+    // 3. Якщо пари немає — створюємо
+    // =========================================
+
+    if (!membership) {
+
+        console.log(
+            "👩‍❤️‍👨 Пари немає. Створюємо нову..."
+        );
+
+        const {
+            data: createdCouple,
+            error: createError
+        } = await window.supabaseClient
+            .rpc("create_couple");
+
+
+        if (createError) {
+
+            console.error(
+                "Помилка створення пари:",
+                createError
+            );
+
+            document.body.innerHTML = `
+                <div style="
+                    padding:40px;
+                    text-align:center;
+                    font-family:Arial;
+                ">
+                    <h2>❌ Не вдалося створити пару</h2>
+
+                    <p>
+                        ${createError.message}
+                    </p>
+
+                    <p>
+                        Перезавантаж сторінку та спробуй ще раз.
+                    </p>
+
+                    <button onclick="location.reload()">
+                        Оновити
+                    </button>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        console.log(
+            "✅ Пару створено:",
+            createdCouple
+        );
+
+
+        coupleId = createdCouple.couple_id;
+        inviteCode = createdCouple.invite_code;
+
+    } else {
+
+        // =========================================
+        // 4. Пара вже існує
+        // =========================================
+
+        coupleId = membership.couple_id;
+
+        console.log(
+            "✅ Знайдено існуючу пару:",
+            coupleId
+        );
+    }
+
+
+    // =========================================
+    // 5. Отримуємо код пари
+    // =========================================
+
+    const {
+        data: couple,
+        error: coupleError
+    } = await window.supabaseClient
+        .from("couples")
+        .select("id, invite_code")
+        .eq("id", coupleId)
+        .single();
+
+
+    if (coupleError) {
+
+        console.error(
+            "Помилка отримання коду:",
+            coupleError
+        );
+
+        document.body.innerHTML = `
+            <div style="
+                padding:40px;
+                text-align:center;
+                font-family:Arial;
+            ">
+                <h2>❌ Не вдалося отримати код пари</h2>
+
+                <p>
+                    ${coupleError.message}
+                </p>
+            </div>
+        `;
+
+        return;
+    }
+
+
+    inviteCode = couple.invite_code;
+
+
+    console.log(
+        "🔑 Код пари:",
+        inviteCode
+    );
+
+
+    // =========================================
+    // 6. Отримуємо дані пари
+    // =========================================
+
+    const {
+        data: coupleData,
+        error: dataError
+    } = await window.supabaseClient
+        .from("couple_data")
+        .select("data")
+        .eq("couple_id", coupleId)
+        .maybeSingle();
+
+
+    if (dataError) {
+
+        console.error(
+            "Помилка отримання даних:",
+            dataError
+        );
+
+    } else if (coupleData?.data) {
+
+        initialData = coupleData.data;
+
+        console.log(
+            "✅ Дані пари завантажено"
+        );
+    }
+
+
+    // =========================================
+    // 7. Запускаємо React
+    // =========================================
+
+    const rootElement =
+        document.getElementById("root");
+
+    if (!rootElement) {
+
+        console.error(
+            "❌ Елемент #root не знайдений"
+        );
+
+        return;
+    }
+
+
+    createRoot(rootElement).render(
+        <App
+            coupleId={coupleId}
+            inviteCode={inviteCode}
+            initialData={initialData}
+        />
+    );
+
+    console.log(
+        "❤️ My Couple успішно запущено!"
+    );
+}
+
+
+// =========================================
+// Запуск
+// =========================================
+
+startApp();
