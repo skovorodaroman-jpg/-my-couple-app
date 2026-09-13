@@ -1,3 +1,4 @@
+
 import React,{useState}from'react';import{createRoot}from'react-dom/client';import{Heart,Camera,Gift,CalendarDays,Sparkles,UserRound,Plus,Lock,Dice5,Check,Send,ChevronRight,Trash2}from'lucide-react';import'./style.css';
 
 const ideas=[['Вечір без телефонів','🍕 Улюблена їжа → 🎬 фільм → 💬 3 речі, за які ви вдячні одне одному.'],['Полювання за спогадами','📸 Знайдіть 5 місць, пов’язаних з вашими спогадами, і зробіть фото.'],['Домашнє кафе','☕ Приготуйте одне одному напій, десерт і влаштуйте побачення вдома.'],['Нічна прогулянка','🌙 Вийдіть ввечері, виберіть новий маршрут і поговоріть без телефонів.']];
