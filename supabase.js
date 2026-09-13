@@ -8,14 +8,10 @@ console.log("2. window.supabase =", window.supabase);
 if (!window.supabase) {
     console.error("❌ Бібліотека Supabase НЕ завантажилася");
 } else {
-
     window.supabaseClient = window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_KEY
     );
 
-    console.log(
-        "3. supabaseClient =",
-        window.supabaseClient
-    );
+    console.log("3. supabaseClient =", window.supabaseClient);
 }
