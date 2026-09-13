@@ -24,6 +24,8 @@ function App(){
 const supabaseClient = window.supabaseClient;
 const SUPABASE_URL = "https://uozokpguesqeiprxnijm.supabase.co";
 const SUPABASE_KEY = "sb_publishable_xhT8kGREbdjnZTe2B4Fndw_N8E7yFK0";
+const SUPABASE_URL = "https://uozokpguesqeiprxnijm.supabase.co";
+const SUPABASE_KEY = "sb_publishable_xhT8kGREbdjnZTe2B4Fndw_N8E7yFK0";
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
@@ -31,7 +33,6 @@ const supabaseClient = window.supabase.createClient(
 );
 
 async function startApp() {
-
     const { data: { session } } =
         await supabaseClient.auth.getSession();
 
@@ -42,7 +43,5 @@ async function startApp() {
 
     createRoot(document.getElementById("root")).render(<App />);
 }
-
-startApp();
 
 startApp();
