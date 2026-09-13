@@ -1,118 +1,123 @@
-<!DOCTYPE html>
-<html lang="uk">
+<!DOCTYPE html><html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>My Couple — Вхід ❤️</title>
 
-    <title>My Couple — Вхід ❤️</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase.js"></script>
+<style>
+    * {
+        box-sizing: border-box;
+    }
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+    body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #ffe4ec, #fff);
+    }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #ffe4ec, #fff);
-        }
+    .box {
+        width: 90%;
+        max-width: 400px;
+        padding: 30px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,.12);
+    }
 
-        .box {
-            width: 90%;
-            max-width: 400px;
-            padding: 30px;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,.12);
-        }
+    h1 {
+        text-align: center;
+        margin-bottom: 25px;
+    }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 25px;
-        }
+    input {
+        width: 100%;
+        padding: 14px;
+        margin-bottom: 14px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        font-size: 16px;
+    }
 
-        input {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 14px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-        }
+    button {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 10px;
+        background: #ff6f91;
+        color: white;
+        font-size: 17px;
+        cursor: pointer;
+    }
 
-        button {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            background: #ff6f91;
-            color: white;
-            font-size: 17px;
-            cursor: pointer;
-        }
+    button:disabled {
+        opacity: 0.7;
+        cursor: wait;
+    }
 
-        .message {
-            margin-top: 15px;
-            text-align: center;
-        }
+    .message {
+        margin-top: 15px;
+        text-align: center;
+    }
 
-        .register {
-            display: block;
-            margin-top: 20px;
-            text-align: center;
-            color: #ff5c83;
-            text-decoration: none;
-        }
-    </style>
-</head>
+    .register {
+        display: block;
+        margin-top: 20px;
+        text-align: center;
+        color: #ff5c83;
+        text-decoration: none;
+    }
+</style>
 
-<body>
+</head><body><div class="box"><h1>My Couple ❤️</h1>
 
-<div class="box">
+<form id="loginForm">
 
-    <h1>My Couple ❤️</h1>
+    <input
+        type="email"
+        id="email"
+        placeholder="Email"
+        required
+    >
 
-    <form id="loginForm">
+    <input
+        type="password"
+        id="password"
+        placeholder="Пароль"
+        required
+    >
 
-        <input
-            type="email"
-            id="email"
-            placeholder="Email"
-            required
-        >
+    <button id="loginButton" type="submit">
+        Увійти ❤️
+    </button>
 
-        <input
-            type="password"
-            id="password"
-            placeholder="Пароль"
-            required
-        >
+</form>
 
-        <button type="submit">
-            Увійти ❤️
-        </button>
+<div class="message" id="message"></div>
 
-    </form>
+<a class="register" href="register.html">
+    Немає акаунта? Зареєструватися
+</a>
 
-    <div class="message" id="message"></div>
+</div><script>
 
-    <a class="register" href="register.html">
-        Немає акаунта? Зареєструватися
-    </a>
+const SUPABASE_URL = "https://uozokpguesqeiprxnijm.supabase.co";
 
-</div>
+// Тут встав свій sb_publishable_... ключ
+const SUPABASE_KEY = "ТУТ_ТВІЙ_SB_PUBLISHABLE_КЛЮЧ";
 
-<script>
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
 
 const form = document.getElementById("loginForm");
 const message = document.getElementById("message");
+const button = document.getElementById("loginButton");
 
 form.addEventListener("submit", async (event) => {
 
@@ -122,6 +127,7 @@ form.addEventListener("submit", async (event) => {
     const password = document.getElementById("password").value;
 
     message.textContent = "Вхід...";
+    button.disabled = true;
 
     const { data, error } =
         await supabaseClient.auth.signInWithPassword({
@@ -131,18 +137,17 @@ form.addEventListener("submit", async (event) => {
 
     if (error) {
         message.textContent = "❌ " + error.message;
+        button.disabled = false;
         return;
     }
 
     message.textContent = "✅ Вхід успішний!";
 
     setTimeout(() => {
-        window.location.href = "index.html";
+        window.location.href = "/index.html";
     }, 500);
 
 });
 
-</script>
-
-</body>
+</script></body>
 </html>
