@@ -129,10 +129,12 @@
 
 </div>
 
+
 <script>
 
 const form = document.getElementById("registerForm");
 const message = document.getElementById("message");
+const button = form.querySelector("button");
 
 form.addEventListener("submit", async (event) => {
 
@@ -148,27 +150,72 @@ form.addEventListener("submit", async (event) => {
         return;
     }
 
-    message.textContent = "Перевірка Supabase...";
-console.log("supabaseClient:", supabaseClient);
+    button.disabled = true;
+    message.textContent = "🔄 Перевіряємо підключення...";
 
-       console.log("Починаємо signUp...");
-    const { data, error } = await supabaseClient.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-            data: {
-                name: name
-            }
+    try {
+
+        if (!window.supabase) {
+            throw new Error("Бібліотека Supabase не завантажилася");
         }
-    });
 
-    if (error) {
-        message.textContent = "❌ " + error.message;
-        return;
+        if (!window.supabaseClient) {
+            throw new Error("supabaseClient не створений. Перевірте supabase.js");
+        }
+
+        message.textContent = "🔄 Підключення до Supabase...";
+
+        const timeout = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error(
+                    "Supabase не відповів протягом 15 секунд. Перевіряємо підключення."
+                ));
+            }, 15000);
+        });
+
+        const signup = supabaseClient.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    name: name
+                }
+            }
+        });
+
+        const result = await Promise.race([
+            signup,
+            timeout
+        ]);
+
+        const { data, error } = result;
+
+        if (error) {
+            message.textContent = "❌ " + error.message;
+            button.disabled = false;
+            return;
+        }
+
+        if (data && data.user) {
+            message.textContent =
+                "✅ Акаунт створено! Перевірте електронну пошту.";
+        } else {
+            message.textContent =
+                "⚠️ Supabase не повернув дані користувача.";
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        message.textContent =
+            "❌ " + error.message;
+
+    } finally {
+
+        button.disabled = false;
+
     }
-
-    message.textContent =
-        "✅ Реєстрація успішна! Перевірте свою електронну пошту.";
 
 });
 
