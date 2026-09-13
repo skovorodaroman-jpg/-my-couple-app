@@ -22,16 +22,15 @@ function App(){
  </main>
  <nav>{nav.map(([id,l,I])=><button className={t===id?'active':''} onClick={()=>setT(id)} key={id}><I/><span>{l}</span></button>)}</nav></div>}
 const supabaseClient = window.supabaseClient;
+const SUPABASE_URL = "https://uozokpguesqeiprxnijm.supabase.co";
+const SUPABASE_KEY = "ТУТ_ТВІЙ_SB_PUBLISHABLE_КЛЮЧ";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
 
 async function startApp() {
-    if (!supabaseClient) {
-        document.body.innerHTML = `
-            <div style="padding:30px;text-align:center;font-family:Arial">
-                ❌ Помилка підключення Supabase
-            </div>
-        `;
-        return;
-    }
 
     const { data: { session } } =
         await supabaseClient.auth.getSession();
@@ -41,7 +40,9 @@ async function startApp() {
         return;
     }
 
-    createRoot(document.getElementById('root')).render(<App />);
+    createRoot(document.getElementById("root")).render(<App />);
 }
+
+startApp();
 
 startApp();
