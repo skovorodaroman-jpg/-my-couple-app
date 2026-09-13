@@ -1,13 +1,11 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>My Couple — Реєстрація ❤️</title>
-
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Реєстрація ❤️</title>
 
     <style>
         * {
@@ -21,20 +19,27 @@
             justify-content: center;
             align-items: center;
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #ffe4ec, #fff);
+            background: linear-gradient(135deg, #ffe5ef, #fff);
+            padding: 20px;
         }
 
         .box {
-            width: 90%;
-            max-width: 400px;
-            padding: 30px;
+            width: 100%;
+            max-width: 420px;
             background: white;
-            border-radius: 20px;
+            padding: 30px;
+            border-radius: 24px;
             box-shadow: 0 10px 40px rgba(0,0,0,.12);
         }
 
         h1 {
             text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
             margin-bottom: 25px;
         }
 
@@ -43,7 +48,7 @@
             padding: 14px;
             margin-bottom: 14px;
             border: 1px solid #ddd;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 16px;
         }
 
@@ -51,27 +56,37 @@
             width: 100%;
             padding: 14px;
             border: none;
-            border-radius: 10px;
-            background: #ff6f91;
+            border-radius: 12px;
+            background: #e84c82;
             color: white;
-            font-size: 17px;
+            font-size: 16px;
             cursor: pointer;
         }
 
         button:disabled {
-            opacity: 0.6;
+            opacity: .6;
         }
 
         .message {
             margin-top: 15px;
             text-align: center;
+            line-height: 1.5;
         }
 
-        .login {
+        .code-info {
+            background: #fff1f6;
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .link {
             display: block;
-            margin-top: 20px;
             text-align: center;
-            color: #ff5c83;
+            margin-top: 18px;
+            color: #e84c82;
             text-decoration: none;
         }
     </style>
@@ -83,124 +98,135 @@
 
     <h1>Створити акаунт ❤️</h1>
 
+    <p class="subtitle">
+        Створіть свій акаунт у My Couple
+    </p>
+
     <form id="registerForm">
 
         <input
-            type="text"
             id="name"
-            placeholder="Твоє ім'я"
+            type="text"
+            placeholder="Ваше ім'я"
             required
         >
 
         <input
-            type="email"
             id="email"
+            type="email"
             placeholder="Email"
             required
         >
 
         <input
-            type="password"
             id="password"
+            type="password"
             placeholder="Пароль"
             minlength="6"
             required
         >
 
+        <div class="code-info">
+            💕 Якщо вас запросив партнер, введіть код його пари.
+            <br><br>
+            Якщо ви створюєте нову пару — залиште поле порожнім.
+        </div>
+
         <input
-            type="password"
-            id="password2"
-            placeholder="Повторіть пароль"
-            minlength="6"
-            required
+            id="inviteCode"
+            type="text"
+            placeholder="Код пари, наприклад 7777ED44"
+            maxlength="8"
+            style="text-transform:uppercase;"
         >
 
-        <button type="submit">
+        <button id="registerButton" type="submit">
             Зареєструватися ❤️
         </button>
 
     </form>
 
-    <div class="message" id="message"></div>
+    <div id="message" class="message"></div>
 
-    <a class="login" href="login.html">
-        Вже маєте акаунт? Увійти
+    <a class="link" href="/login.html">
+        Уже є акаунт? Увійти
     </a>
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/supabase.js"></script>
+
 <script>
-
-const SUPABASE_URL = "https://uozokpguesqeiprxnijm.supabase.co";
-
-// ВСТАВ СЮДИ СВІЙ СПРАВЖНІЙ sb_publishable_ КЛЮЧ
-const SUPABASE_KEY = "sb_publishable_xhT8kGREbdjnZTe2B4Fndw_N8E7yFK0";
-
-const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-);
 
 const form = document.getElementById("registerForm");
 const message = document.getElementById("message");
-const button = form.querySelector("button");
+const button = document.getElementById("registerButton");
 
-form.addEventListener("submit", async (event) => {
+form.addEventListener("submit", async function(event) {
 
     event.preventDefault();
+
+    if (!window.supabaseClient) {
+        message.innerHTML = "❌ Помилка підключення Supabase";
+        return;
+    }
 
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
-    const password2 = document.getElementById("password2").value;
 
-    if (password !== password2) {
-        message.textContent = "❌ Паролі не збігаються";
-        return;
-    }
+    const inviteCode = document
+        .getElementById("inviteCode")
+        .value
+        .trim()
+        .toUpperCase();
 
     button.disabled = true;
-    message.textContent = "🔄 Реєструємо акаунт...";
+    button.textContent = "Реєстрація...";
 
-    try {
+    message.innerHTML = "";
 
-        const { data, error } = await supabaseClient.auth.signUp({
+    const { data, error } =
+        await window.supabaseClient.auth.signUp({
+
             email: email,
+
             password: password,
+
             options: {
                 data: {
-                    name: name
-                }
+                    name: name,
+                    invite_code: inviteCode || null
+                },
+
+                emailRedirectTo:
+                    "https://my-couple-app-six.vercel.app/index.html"
             }
         });
 
-        console.log("Supabase:", data, error);
+    if (error) {
 
-        if (error) {
-            message.textContent = "❌ " + error.message;
-            return;
-        }
-
-        if (data && data.user) {
-            message.textContent =
-                "✅ Акаунт створено! Перевірте свою електронну пошту.";
-        } else {
-            message.textContent =
-                "⚠️ Не вдалося отримати дані користувача.";
-        }
-
-    } catch (error) {
-
-        console.error(error);
-
-        message.textContent =
+        message.innerHTML =
             "❌ " + error.message;
 
-    } finally {
-
         button.disabled = false;
+        button.textContent = "Зареєструватися ❤️";
 
+        return;
     }
+
+    message.innerHTML = `
+        <div style="color:#e84c82;">
+            ❤️ Реєстрацію успішно створено!
+            <br><br>
+            Перевірте свою електронну пошту
+            та підтвердьте email.
+            <br><br>
+            Після підтвердження ви будете
+            автоматично приєднані до пари.
+        </div>
+    `;
 
 });
 
