@@ -23,7 +23,7 @@ function App(){
  <nav>{nav.map(([id,l,I])=><button className={t===id?'active':''} onClick={()=>setT(id)} key={id}><I/><span>{l}</span></button>)}</nav></div>}
 const supabaseClient = window.supabaseClient;
 const SUPABASE_URL = "https://uozokpguesqeiprxnijm.supabase.co";
-const SUPABASE_KEY = "ТУТ_ТВІЙ_SB_PUBLISHABLE_КЛЮЧ";
+const SUPABASE_KEY = "sb_publishable_xhT8kGREbdjnZTe2B4Fndw_N8E7yFK0";
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
