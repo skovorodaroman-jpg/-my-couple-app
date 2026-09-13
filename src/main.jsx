@@ -550,16 +550,97 @@ async function startApp() {
 
     if (!membership) {
 
+    console.log("👩‍❤️‍👨 Пари немає.");
+
+    const inviteCodeFromUser =
+        session.user.user_metadata?.invite_code?.trim().toUpperCase();
+
+    if (inviteCodeFromUser) {
+
+        console.log("🔑 Користувач має код пари:", inviteCodeFromUser);
+
+        const { data: joinedCouple, error: joinError } =
+            await window.supabaseClient.rpc(
+                "join_couple",
+                {
+                    entered_invite_code: inviteCodeFromUser
+                }
+            );
+
+        if (joinError) {
+
+            console.error(
+                "Помилка приєднання до пари:",
+                joinError
+            );
+
+            document.body.innerHTML = `
+                <div style="padding:40px;text-align:center;font-family:Arial;">
+                    <h2>❌ Не вдалося приєднатися</h2>
+
+                    <p>${joinError.message}</p>
+
+                    <button onclick="location.reload()">
+                        Спробувати ще раз
+                    </button>
+                </div>
+            `;
+
+            return;
+        }
+
         console.log(
-            "👩‍❤️‍👨 Пари немає. Створюємо нову..."
+            "❤️ Користувача приєднано:",
+            joinedCouple
+        );
+
+        coupleId = joinedCouple.couple_id;
+        inviteCode = joinedCouple.invite_code;
+
+    } else {
+
+        console.log(
+            "👤 Коду немає. Створюємо нову пару..."
         );
 
         const {
             data: createdCouple,
             error: createError
-        } = await window.supabaseClient
-            .rpc("create_couple");
+        } = await window.supabaseClient.rpc(
+            "create_couple"
+        );
 
+        if (createError) {
+
+            console.error(
+                "Помилка створення пари:",
+                createError
+            );
+
+            document.body.innerHTML = `
+                <div style="padding:40px;text-align:center;font-family:Arial;">
+                    <h2>❌ Не вдалося створити пару</h2>
+
+                    <p>${createError.message}</p>
+
+                    <button onclick="location.reload()">
+                        Оновити
+                    </button>
+                </div>
+            `;
+
+            return;
+        }
+
+        console.log(
+            "✅ Нову пару створено:",
+            createdCouple
+        );
+
+        coupleId = createdCouple.couple_id;
+        inviteCode = createdCouple.invite_code;
+    }
+    }
 
         if (createError) {
 
