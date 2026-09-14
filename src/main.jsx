@@ -82,8 +82,10 @@ function App() {
 
     const [startDate, setStartDate] = useState("");
     const [partnerName, setPartnerName] = useState("Даша");
-
-    useEffect(() => {
+const [moments, setMoments] = useState([]);
+const [showAddMoment, setShowAddMoment] = useState(false);
+const [momentLoading, setMomentLoading] = useState(false);
+    useEffect(() => {st
         loadApp();
 
         const {
@@ -226,7 +228,193 @@ function App() {
                     settingsData = newSettings;
                 }
             }
+async function loadMoments(coupleId) {
+    if (!coupleId) {
+        setMoments([]);
+        return;
+    }
+async function addMoment({
+    title,
+    description,
+    momentDate,
+    file
+}) {
+    if (!couple?.id || !session?.user?.id) {
+        alert("Не знайдено вашу пару ❤️");
+        return false;
+    }
 
+    if (!title.trim()) {
+        alert("Введи назву моменту ❤️");
+        return false;
+    }
+
+    try {
+        setMomentLoading(true);
+
+        let imageUrl = null;
+
+        // 📸 Завантаження фотографії
+        if (file) {
+            const extension =
+                file.name.split(".").pop();
+
+            const fileName =
+                `${crypto.randomUUID()}.${extension}`;
+
+            const filePath =
+                `${couple.id}/${fileName}`;
+
+            const {
+                error: uploadError
+            } = await supabase.storage
+                .from("moments")
+                .upload(
+                    filePath,
+                    file,
+                    {
+                        cacheControl: "3600",
+                        upsert: false
+                    }
+                );
+
+            if (uploadError) {
+                console.error(
+                    "Помилка завантаження фото:",
+                    uploadError
+                );
+
+                alert(
+                    "Не вдалося завантажити фото 📸"
+                );
+
+                return false;
+            }
+
+            // 🔗 Отримуємо URL для приватного фото
+            const {
+                data: signedData,
+                error: signedError
+            } = await supabase.storage
+                .from("moments")
+                .createSignedUrl(
+                    filePath,
+                    60 * 60 * 24 * 365
+                );
+
+            if (signedError) {
+                console.error(
+                    "Помилка URL фото:",
+                    signedError
+                );
+
+                alert(
+                    "Фото завантажено, але не вдалося отримати адресу."
+                );
+
+                return false;
+            }
+
+            imageUrl =
+                signedData?.signedUrl || null;
+        }
+
+        // ❤️ Створюємо момент у базі
+        const {
+            data,
+            error
+        } = await supabase
+            .from("moments")
+            .insert({
+                couple_id: couple.id,
+                user_id: session.user.id,
+                title: title.trim(),
+                description:
+                    description?.trim() || null,
+                moment_date:
+                    momentDate ||
+                    new Date()
+                        .toISOString()
+                        .split("T")[0],
+                image_url: imageUrl
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error(
+                "Помилка створення моменту:",
+                error
+            );
+
+            alert(
+                "Не вдалося зберегти момент ❤️"
+            );
+
+            return false;
+        }
+
+        setMoments((previous) => [
+            data,
+            ...previous
+        ]);
+
+        alert("Момент збережено ❤️");
+
+        return true;
+
+    } catch (error) {
+        console.error(
+            "❌ Помилка:",
+            error
+        );
+
+        alert(
+            "Сталася помилка. Спробуй ще раз."
+        );
+
+        return false;
+
+    } finally {
+        setMomentLoading(false);
+    }
+}
+    try {
+        const {
+            data,
+            error
+        } = await supabase
+            .from("moments")
+            .select("*")
+            .eq("couple_id", coupleId)
+            .order("moment_date", {
+                ascending: false
+            })
+            .order("created_at", {
+                ascending: false
+            });
+
+        if (error) {
+            console.error(
+                "❌ Помилка завантаження моментів:",
+                error
+            );
+            return;
+        }
+
+        setMoments(data || []);
+    } catch (error) {
+        console.error(
+            "❌ Помилка:",
+            error
+        );
+    }
+}
+            useEffect(() => {
+    if (couple?.id) {
+        loadMoments(couple.id);
+    }
+}, [couple]);
             setSettings(settingsData);
 
             if (settingsData?.partner_name) {
@@ -398,14 +586,23 @@ function App() {
 
             <main style={styles.content}>
                 {page === "home" && (
-                    <HomePage
-                        profile={profile}
-                        couple={couple}
-                        partnerName={partnerName}
-                        loveTime={loveTime}
-                        setPage={setPage}
-                    />
-                )}
+    <HomePage
+        profile={profile}
+        couple={couple}
+        partnerName={partnerName}
+        loveTime={loveTime}
+        setPage={setPage}
+    />
+)}
+
+{page === "moments" && (
+    <MomentsPage
+        moments={moments}
+        setPage={setPage}
+        addMoment={addMoment}
+        momentLoading={momentLoading}
+    />
+)}
 
                 {page === "moments" && (
                     <MomentsPage />
@@ -520,7 +717,7 @@ function App() {
         </div>
     );
         }
-function HomePage({
+ function HomePage({
     profile,
     couple,
     partnerName,
@@ -623,6 +820,117 @@ function HomePage({
 
                 <div style={styles.cardsGrid}>
                     <FeatureCard
+function HomePage({
+    profile,
+    couple,
+    partnerName,
+    loveTime,
+    setPage
+}) {
+    const userName =
+        profile?.name || "Рома";
+
+    return (
+        <div>
+            {/* ❤️ ГОЛОВНИЙ БЛОК */}
+            <section style={styles.hero}>
+                <div style={styles.heroDecor}>
+                    ❤️
+                </div>
+
+                <p style={styles.eyebrow}>
+                    НАША ІСТОРІЯ
+                </p>
+
+                <h1 style={styles.heroTitle}>
+                    Разом — це
+                    <br />
+                    найкраще ❤️
+                </h1>
+
+                <p style={styles.heroText}>
+                    Кожен день поруч —
+                    ще одна маленька
+                    історія нашого кохання.
+                </p>
+
+                <div style={styles.names}>
+                    {userName}
+                    <span> ❤️ </span>
+                    {partnerName || "Даша"}
+                </div>
+            </section>
+
+
+            {/* ⏳ ЛІЧИЛЬНИК */}
+            <section style={styles.counterCard}>
+                <div style={styles.counterTitle}>
+                    Ми разом вже
+                </div>
+
+                {loveTime ? (
+                    <div style={styles.counterGrid}>
+                        <CounterItem
+                            value={loveTime.years}
+                            label="років"
+                        />
+
+                        <CounterItem
+                            value={loveTime.months}
+                            label="місяців"
+                        />
+
+                        <CounterItem
+                            value={loveTime.days}
+                            label="днів"
+                        />
+
+                        <CounterItem
+                            value={loveTime.hours}
+                            label="годин"
+                        />
+
+                        <CounterItem
+                            value={loveTime.minutes}
+                            label="хвилин"
+                        />
+
+                        <CounterItem
+                            value={loveTime.seconds}
+                            label="секунд"
+                        />
+                    </div>
+                ) : (
+                    <div style={styles.noCounter}>
+                        ❤️
+                    </div>
+                )}
+
+                <div style={styles.counterHeart}>
+                    ❤️
+                </div>
+            </section>
+
+
+            {/* 💕 РОЗДІЛИ */}
+            <section>
+                <div style={styles.sectionHeader}>
+                    <div>
+                        <p style={styles.sectionSmall}>
+                            НАШЕ
+                        </p>
+
+                        <h2 style={styles.sectionTitle}>
+                            Все наше ❤️
+                        </h2>
+                    </div>
+                </div>
+
+
+                <div style={styles.cardsGrid}>
+
+                    {/* 📸 НАШІ МОМЕНТИ */}
+                    <FeatureCard
                         icon="📸"
                         title="Наші моменти"
                         text="Фото та спогади"
@@ -631,6 +939,8 @@ function HomePage({
                         }
                     />
 
+
+                    {/* 📅 КАЛЕНДАР */}
                     <FeatureCard
                         icon="📅"
                         title="Календар"
@@ -640,6 +950,8 @@ function HomePage({
                         }
                     />
 
+
+                    {/* ✨ МРІЇ */}
                     <FeatureCard
                         icon="✨"
                         title="Наші мрії"
@@ -649,6 +961,8 @@ function HomePage({
                         }
                     />
 
+
+                    {/* 💌 ДЛЯ ТЕБЕ */}
                     <FeatureCard
                         icon="💌"
                         title="Для тебе"
@@ -659,9 +973,12 @@ function HomePage({
                             )
                         }
                     />
+
                 </div>
             </section>
 
+
+            {/* 💕 ЦИТАТА */}
             <section style={styles.quoteCard}>
                 <div style={styles.quoteHeart}>
                     💕
@@ -682,6 +999,8 @@ function HomePage({
                 </p>
             </section>
 
+
+            {/* 🔐 КОД ПАРИ */}
             {couple?.invite_code && (
                 <section style={styles.codeCard}>
                     <div style={styles.codeIcon}>
@@ -701,8 +1020,646 @@ function HomePage({
             )}
         </div>
     );
-}
+                    }
+                    function MomentsPage({
+    moments,
+    setPage,
+    addMoment,
+    momentLoading
+}) {
+    const [showForm, setShowForm] = useState(false);
 
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [momentDate, setMomentDate] = useState(
+        new Date().toISOString().split("T")[0]
+    );
+    const [file, setFile] = useState(null);
+
+    async function handleSubmit(event) {
+        event.preventDefault();
+
+        const success = await addMoment({
+            title,
+            description,
+            momentDate,
+            file
+        });
+
+        if (success) {
+            setTitle("");
+            setDescription("");
+            setMomentDate(
+                new Date().toISOString().split("T")[0]
+            );
+            setFile(null);
+            setShowForm(false);
+        }
+    }
+
+    return (
+        <div>
+
+            <section style={styles.pageHeader}>
+                <button
+                    style={styles.backButton}
+                    onClick={() => setPage("home")}
+                >
+                    ←
+                </button>
+
+                <div>
+                    <p style={styles.sectionSmall}>
+                        НАША ІСТОРІЯ
+                    </p>
+
+                    <h1 style={styles.pageTitle}>
+                        Наші моменти 📸
+                    </h1>
+                </div>
+            </section>
+
+            <section style={styles.momentsTopCard}>
+                <div style={styles.momentsTopIcon}>
+                    ❤️
+                </div>
+
+                <div style={{ flex: 1 }}>
+                    <div style={styles.momentsTopTitle}>
+                        Зберігаймо наші спогади
+                    </div>
+
+                    <div style={styles.momentsTopText}>
+                        Додавайте фотографії та особливі
+                        моменти, щоб ваша історія завжди
+                        залишалася з вами.
+                    </div>
+                </div>
+            </section>
+
+            <button
+                style={styles.addMomentButton}
+                onClick={() => setShowForm(!showForm)}
+            >
+                {showForm
+                    ? "✕ Скасувати"
+                    : "＋ Додати момент ❤️"}
+            </button>
+
+            {showForm && (
+                <form
+                    style={styles.momentForm}
+                    onSubmit={handleSubmit}
+                >
+
+                    <div style={styles.formTitle}>
+                        Новий момент 💕
+                    </div>
+
+                    <label style={styles.formLabel}>
+                        📸 Фотографія
+                    </label>
+
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) =>
+                            setFile(
+                                event.target.files?.[0] || null
+                            )
+                        }
+                        style={styles.fileInput}
+                    />
+
+                    {file && (
+                        <div style={styles.selectedFile}>
+                            📷 {file.name}
+                        </div>
+                    )}
+
+                    <label style={styles.formLabel}>
+                        ❤️ Назва
+                    </label>
+
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(event) =>
+                            setTitle(event.target.value)
+                        }
+                        placeholder="Наприклад: Наша перша поїздка"
+                        style={styles.formInput}
+                        required
+                    />
+
+                    <label style={styles.formLabel}>
+                        📝 Опис
+                    </label>
+
+                    <textarea
+                        value={description}
+                        onChange={(event) =>
+                            setDescription(event.target.value)
+                        }
+                        placeholder="Розкажи трохи про цей момент..."
+                        style={styles.formTextarea}
+                        rows={4}
+                    />
+
+                    <label style={styles.formLabel}>
+                        📅 Дата
+                    </label>
+
+                    <input
+                        type="date"
+                        value={momentDate}
+                        onChange={(event) =>
+                            setMomentDate(event.target.value)
+                        }
+                        style={styles.formInput}
+                    />
+
+                    <button
+                        type="submit"
+                        style={styles.saveMomentButton}
+                        disabled={momentLoading}
+                    >
+                        {momentLoading
+                            ? "Зберігаю... ❤️"
+                            : "💾 Зберегти момент"}
+                    </button>
+
+                </form>
+            )}
+
+            {moments.length === 0 ? (
+                <div style={styles.emptyMoments}>
+
+                    <div style={styles.emptyMomentsIcon}>
+                        📸
+                    </div>
+
+                    <div style={styles.emptyMomentsTitle}>
+                        Тут поки порожньо
+                    </div>
+
+                    <div style={styles.emptyMomentsText}>
+                        Додайте ваш перший спільний
+                        спогад ❤️
+                    </div>
+
+                </div>
+            ) : (
+                <div style={styles.momentsList}>
+
+                    {moments.map((moment) => (
+                        <article
+                            key={moment.id}
+                            style={styles.momentCard}
+                        >
+
+                            {moment.image_url && (
+                                <img
+                                    src={moment.image_url}
+                                    alt={moment.title}
+                                    style={styles.momentImage}
+                                />
+                            )}
+
+                            <div style={styles.momentContent}>
+
+                                <div style={styles.momentDate}>
+                                    📅 {moment.moment_date}
+                                </div>
+
+                                <h3 style={styles.momentTitle}>
+                                    {moment.title}
+                                </h3>
+
+                                {moment.description && (
+                                    <p
+                                        style={
+                                            styles.momentDescription
+                                        }
+                                    >
+                                        {moment.description}
+                                    </p>
+                                )}
+
+                            </div>
+
+                        </article>
+                    ))}
+
+                </div>
+            )}
+
+        </div>
+    );
+                                }
+function MomentsPage({
+    moments,
+    setPage,
+    addMoment,
+    momentLoading
+}) {
+    const [showForm, setShowForm] = useState(false);
+
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+
+    const [momentDate, setMomentDate] = useState(
+        new Date()
+            .toISOString()
+            .split("T")[0]
+    );
+
+    const [file, setFile] = useState(null);
+
+    async function handleSubmit(event) {
+        event.preventDefault();
+
+        const success = await addMoment({
+            title,
+            description,
+            momentDate,
+            file
+        });
+
+        if (success) {
+            setTitle("");
+            setDescription("");
+
+            setMomentDate(
+                new Date()
+                    .toISOString()
+                    .split("T")[0]
+            );
+
+            setFile(null);
+            setShowForm(false);
+        }
+    }
+
+    return (
+        <div>
+
+            {/* 🔙 ЗАГОЛОВОК */}
+            <section style={styles.pageHeader}>
+
+                <button
+                    style={styles.backButton}
+                    onClick={() =>
+                        setPage("home")
+                    }
+                >
+                    ←
+                </button>
+
+                <div>
+                    <p style={styles.sectionSmall}>
+                        НАША ІСТОРІЯ
+                    </p>
+
+                    <h1 style={styles.pageTitle}>
+                        Наші моменти 📸
+                    </h1>
+                </div>
+
+            </section>
+
+
+            {/* ❤️ ОПИС */}
+            <section
+                style={styles.momentsTopCard}
+            >
+
+                <div
+                    style={
+                        styles.momentsTopIcon
+                    }
+                >
+                    ❤️
+                </div>
+
+                <div
+                    style={{
+                        flex: 1
+                    }}
+                >
+
+                    <div
+                        style={
+                            styles.momentsTopTitle
+                        }
+                    >
+                        Зберігаймо наші спогади
+                    </div>
+
+                    <div
+                        style={
+                            styles.momentsTopText
+                        }
+                    >
+                        Додавайте фотографії та
+                        особливі моменти, щоб ваша
+                        історія завжди залишалася
+                        з вами.
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            {/* ➕ КНОПКА */}
+            <button
+                style={
+                    styles.addMomentButton
+                }
+                onClick={() =>
+                    setShowForm(
+                        !showForm
+                    )
+                }
+            >
+                {showForm
+                    ? "✕ Скасувати"
+                    : "＋ Додати момент ❤️"}
+            </button>
+
+
+            {/* 📝 ФОРМА */}
+            {showForm && (
+                <form
+                    style={styles.momentForm}
+                    onSubmit={
+                        handleSubmit
+                    }
+                >
+
+                    <div
+                        style={
+                            styles.formTitle
+                        }
+                    >
+                        Новий момент 💕
+                    </div>
+
+
+                    {/* 📸 ФОТО */}
+                    <label
+                        style={
+                            styles.formLabel
+                        }
+                    >
+                        📸 Фотографія
+                    </label>
+
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) =>
+                            setFile(
+                                event.target
+                                    .files?.[0] ||
+                                null
+                            )
+                        }
+                        style={
+                            styles.fileInput
+                        }
+                    />
+
+                    {file && (
+                        <div
+                            style={
+                                styles.selectedFile
+                            }
+                        >
+                            📷 {file.name}
+                        </div>
+                    )}
+
+
+                    {/* ❤️ НАЗВА */}
+                    <label
+                        style={
+                            styles.formLabel
+                        }
+                    >
+                        ❤️ Назва
+                    </label>
+
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(event) =>
+                            setTitle(
+                                event.target.value
+                            )
+                        }
+                        placeholder="Наприклад: Наша перша поїздка"
+                        style={
+                            styles.formInput
+                        }
+                        required
+                    />
+
+
+                    {/* 📝 ОПИС */}
+                    <label
+                        style={
+                            styles.formLabel
+                        }
+                    >
+                        📝 Опис
+                    </label>
+
+                    <textarea
+                        value={description}
+                        onChange={(event) =>
+                            setDescription(
+                                event.target.value
+                            )
+                        }
+                        placeholder="Розкажи трохи про цей момент..."
+                        style={
+                            styles.formTextarea
+                        }
+                        rows={4}
+                    />
+
+
+                    {/* 📅 ДАТА */}
+                    <label
+                        style={
+                            styles.formLabel
+                        }
+                    >
+                        📅 Дата
+                    </label>
+
+                    <input
+                        type="date"
+                        value={momentDate}
+                        onChange={(event) =>
+                            setMomentDate(
+                                event.target.value
+                            )
+                        }
+                        style={
+                            styles.formInput
+                        }
+                    />
+
+
+                    {/* 💾 ЗБЕРЕГТИ */}
+                    <button
+                        type="submit"
+                        style={
+                            styles.saveMomentButton
+                        }
+                        disabled={
+                            momentLoading
+                        }
+                    >
+                        {momentLoading
+                            ? "Зберігаю... ❤️"
+                            : "💾 Зберегти момент"}
+                    </button>
+
+                </form>
+            )}
+
+
+            {/* 📸 СПИСОК МОМЕНТІВ */}
+            <section>
+
+                {moments.length === 0 ? (
+
+                    <div
+                        style={
+                            styles.emptyMoments
+                        }
+                    >
+
+                        <div
+                            style={
+                                styles.emptyMomentsIcon
+                            }
+                        >
+                            📸
+                        </div>
+
+                        <div
+                            style={
+                                styles.emptyMomentsTitle
+                            }
+                        >
+                            Тут поки порожньо
+                        </div>
+
+                        <div
+                            style={
+                                styles.emptyMomentsText
+                            }
+                        >
+                            Додайте ваш перший
+                            спільний спогад ❤️
+                        </div>
+
+                    </div>
+
+                ) : (
+
+                    <div
+                        style={
+                            styles.momentsList
+                        }
+                    >
+
+                        {moments.map(
+                            (moment) => (
+
+                                <article
+                                    key={
+                                        moment.id
+                                    }
+                                    style={
+                                        styles.momentCard
+                                    }
+                                >
+
+                                    {moment.image_url && (
+                                        <img
+                                            src={
+                                                moment.image_url
+                                            }
+                                            alt={
+                                                moment.title
+                                            }
+                                            style={
+                                                styles.momentImage
+                                            }
+                                        />
+                                    )}
+
+                                    <div
+                                        style={
+                                            styles.momentContent
+                                        }
+                                    >
+
+                                        <div
+                                            style={
+                                                styles.momentDate
+                                            }
+                                        >
+                                            📅{" "}
+                                            {
+                                                moment.moment_date
+                                            }
+                                        </div>
+
+                                        <h3
+                                            style={
+                                                styles.momentTitle
+                                            }
+                                        >
+                                            {
+                                                moment.title
+                                            }
+                                        </h3>
+
+                                        {moment.description && (
+                                            <p
+                                                style={
+                                                    styles.momentDescription
+                                                }
+                                            >
+                                                {
+                                                    moment.description
+                                                }
+                                            </p>
+                                        )}
+
+                                    </div>
+
+                                </article>
+
+                            )
+                        )}
+
+                    </div>
+
+                )}
+
+            </section>
+
+        </div>
+    );
+                    }
 function CounterItem({
     value,
     label
@@ -1592,9 +2549,226 @@ const styles = {
         gap: "3px"
     },
 
-    navActive: {
+        navActive: {
         background: "#fff0f4",
         color: "#b85876"
+    },
+
+    pageHeader: {
+        display: "flex",
+        alignItems: "center",
+        gap: "16px",
+        marginBottom: "24px"
+    },
+
+    backButton: {
+        width: "46px",
+        height: "46px",
+        border: "none",
+        borderRadius: "50%",
+        background: "#fff",
+        fontSize: "24px",
+        cursor: "pointer",
+        boxShadow: "0 4px 15px rgba(0,0,0,0.08)"
+    },
+
+    pageTitle: {
+        margin: "4px 0 0",
+        fontSize: "28px",
+        color: "#3b2630"
+    },
+
+    momentsTopCard: {
+        display: "flex",
+        gap: "16px",
+        alignItems: "center",
+        padding: "20px",
+        marginBottom: "18px",
+        background: "#fff5f7",
+        borderRadius: "22px"
+    },
+
+    momentsTopIcon: {
+        width: "52px",
+        height: "52px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#fff",
+        borderRadius: "50%",
+        fontSize: "25px",
+        flexShrink: 0
+    },
+
+    momentsTopTitle: {
+        fontSize: "18px",
+        fontWeight: "700",
+        color: "#3b2630",
+        marginBottom: "6px"
+    },
+
+    momentsTopText: {
+        fontSize: "14px",
+        lineHeight: "1.5",
+        color: "#806c73"
+    },
+
+    addMomentButton: {
+        width: "100%",
+        padding: "16px",
+        border: "none",
+        borderRadius: "18px",
+        background: "#e96b83",
+        color: "#fff",
+        fontSize: "16px",
+        fontWeight: "700",
+        cursor: "pointer",
+        marginBottom: "18px"
+    },
+
+    momentForm: {
+        background: "#fff",
+        padding: "20px",
+        borderRadius: "22px",
+        marginBottom: "22px",
+        boxShadow: "0 5px 20px rgba(0,0,0,0.06)"
+    },
+
+    formTitle: {
+        fontSize: "21px",
+        fontWeight: "700",
+        color: "#3b2630",
+        marginBottom: "20px"
+    },
+
+    formLabel: {
+        display: "block",
+        fontSize: "14px",
+        fontWeight: "600",
+        color: "#5c464e",
+        marginTop: "14px",
+        marginBottom: "7px"
+    },
+
+    formInput: {
+        width: "100%",
+        boxSizing: "border-box",
+        padding: "13px 14px",
+        border: "1px solid #eadde1",
+        borderRadius: "13px",
+        background: "#fff",
+        fontSize: "15px"
+    },
+
+    formTextarea: {
+        width: "100%",
+        boxSizing: "border-box",
+        padding: "13px 14px",
+        border: "1px solid #eadde1",
+        borderRadius: "13px",
+        background: "#fff",
+        fontSize: "15px",
+        resize: "vertical",
+        fontFamily: "inherit"
+    },
+
+    fileInput: {
+        width: "100%",
+        boxSizing: "border-box",
+        padding: "12px",
+        border: "1px dashed #e2cbd2",
+        borderRadius: "13px",
+        background: "#fff8fa"
+    },
+
+    selectedFile: {
+        marginTop: "8px",
+        padding: "10px",
+        borderRadius: "10px",
+        background: "#f8f1f3",
+        fontSize: "13px",
+        color: "#705a62"
+    },
+
+    saveMomentButton: {
+        width: "100%",
+        padding: "15px",
+        marginTop: "20px",
+        border: "none",
+        borderRadius: "15px",
+        background: "#3b2630",
+        color: "#fff",
+        fontSize: "15px",
+        fontWeight: "700",
+        cursor: "pointer"
+    },
+
+    emptyMoments: {
+        textAlign: "center",
+        padding: "55px 20px",
+        background: "#fff",
+        borderRadius: "22px",
+        marginTop: "10px"
+    },
+
+    emptyMomentsIcon: {
+        fontSize: "48px",
+        marginBottom: "12px"
+    },
+
+    emptyMomentsTitle: {
+        fontSize: "19px",
+        fontWeight: "700",
+        color: "#3b2630",
+        marginBottom: "7px"
+    },
+
+    emptyMomentsText: {
+        fontSize: "14px",
+        color: "#806c73"
+    },
+
+    momentsList: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "18px"
+    },
+
+    momentCard: {
+        background: "#fff",
+        borderRadius: "22px",
+        overflow: "hidden",
+        boxShadow: "0 5px 20px rgba(0,0,0,0.06)"
+    },
+
+    momentImage: {
+        width: "100%",
+        display: "block",
+        maxHeight: "420px",
+        objectFit: "cover"
+    },
+
+    momentContent: {
+        padding: "18px"
+    },
+
+    momentDate: {
+        fontSize: "12px",
+        color: "#a08089",
+        marginBottom: "7px"
+    },
+
+    momentTitle: {
+        margin: "0 0 8px",
+        fontSize: "20px",
+        color: "#3b2630"
+    },
+
+    momentDescription: {
+        margin: 0,
+        fontSize: "14px",
+        lineHeight: "1.6",
+        color: "#806c73"
     }
 };
 const rootElement =
