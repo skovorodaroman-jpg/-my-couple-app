@@ -148,7 +148,13 @@ function App() {
     <main style={styles.content}>
       {page === "home" && <HomePage profile={profile} couple={couple} partnerName={partnerName} loveTime={loveTime} setPage={setPage} />}
       {page === "moments" && <MomentsPage moments={moments} setPage={setPage} addMoment={addMoment} momentLoading={momentLoading} />}
-      {page === "calendar" && <CalendarPage />}
+      {page === "calendar" && (
+  <CalendarPage
+    couple={couple}
+    session={session}
+    setPage={setPage}
+  />
+)}
       {page === "dreams" && <DreamsPage />}
       {page === "settings" && <SettingsPage profile={profile} couple={couple} isAdmin={isAdmin} startDate={startDate} setStartDate={setStartDate} partnerName={partnerName} setPartnerName={setPartnerName} saveSettings={saveSettings} saving={saving} logout={logout} />}
     </main>
@@ -181,8 +187,340 @@ function MomentsPage({ moments, setPage, addMoment, momentLoading }) {
 
 function CounterItem({value,label}){return <div style={styles.counterItem}><div style={styles.counterNumber}>{pad(value)}</div><div style={styles.counterLabel}>{label}</div></div>}
 function FeatureCard({icon,title,text,onClick}){return <button style={styles.featureCard} onClick={onClick}><div style={styles.featureIcon}>{icon}</div><div style={styles.featureTitle}>{title}</div><div style={styles.featureText}>{text}</div><div style={styles.featureArrow}>→</div></button>}
-function CalendarPage(){return <PageWrapper icon="📅" title="Наш календар" subtitle="Важливі дати нашої історії"><div style={styles.infoCard}><div style={styles.bigEmoji}>❤️</div><h3 style={styles.infoTitle}>Наші важливі дати</h3><p style={styles.infoText}>Тут зможемо додавати річниці, дні народження, побачення та інші особливі моменти.</p></div></PageWrapper>}
-function DreamsPage(){return <PageWrapper icon="✨" title="Наші мрії" subtitle="Те, що ми хочемо здійснити"><EmptyState icon="🌙" title="Мрії попереду" text="Тут буде наш спільний список мрій та цілей."/></PageWrapper>}
+function CalendarPage({ couple, session, setPage }) {
+  const [events, setEvents] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [title, setTitle] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [eventType, setEventType] = useState("other");
+
+  useEffect(() => {
+    if (couple?.id) loadEvents();
+  }, [couple?.id]);
+
+  async function loadEvents() {
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from("calendar_events")
+        .select("*")
+        .eq("couple_id", couple.id)
+        .order("event_date", { ascending: true });
+
+      if (error) {
+        console.error("Помилка завантаження календаря:", error);
+        alert("Не вдалося завантажити календар ❤️");
+        return;
+      }
+
+      setEvents(data || []);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function addEvent(e) {
+    e.preventDefault();
+
+    if (!title.trim()) {
+      alert("Введи назву події ❤️");
+      return;
+    }
+
+    if (!eventDate) {
+      alert("Обери дату 📅");
+      return;
+    }
+
+    if (!couple?.id || !session?.user?.id) {
+      alert("Не знайдено вашу пару ❤️");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const { data, error } = await supabase
+        .from("calendar_events")
+        .insert({
+          couple_id: couple.id,
+          user_id: session.user.id,
+          title: title.trim(),
+          event_date: eventDate,
+          description: description.trim() || null,
+          event_type: eventType
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Помилка створення події:", error);
+        alert("Не вдалося зберегти подію ❤️");
+        return;
+      }
+
+      setEvents(prev =>
+        [...prev, data].sort(
+          (a, b) =>
+            new Date(a.event_date) - new Date(b.event_date)
+        )
+      );
+
+      setTitle("");
+      setEventDate("");
+      setDescription("");
+      setEventType("other");
+      setShowForm(false);
+
+      alert("❤️ Подію додано!");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function getDaysUntil(date) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const target = new Date(date + "T00:00:00");
+    target.setHours(0, 0, 0, 0);
+
+    const difference =
+      Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+
+    return difference;
+  }
+
+  function getEventIcon(type) {
+    const icons = {
+      anniversary: "❤️",
+      birthday: "🎂",
+      date: "🌹",
+      holiday: "🎉",
+      other: "📅"
+    };
+
+    return icons[type] || "📅";
+  }
+
+  function getEventName(type) {
+    const names = {
+      anniversary: "Річниця",
+      birthday: "День народження",
+      date: "Побачення",
+      holiday: "Свято",
+      other: "Інше"
+    };
+
+    return names[type] || "Інше";
+  }
+
+  const upcomingEvents = events
+    .map(event => ({
+      ...event,
+      daysUntil: getDaysUntil(event.event_date)
+    }))
+    .filter(event => event.daysUntil >= 0)
+    .sort((a, b) => a.daysUntil - b.daysUntil);
+
+  const nextEvent = upcomingEvents[0];
+
+  return (
+    <div>
+      <section style={styles.pageHeader}>
+        <button
+          style={styles.backButton}
+          onClick={() => setPage("home")}
+        >
+          ←
+        </button>
+
+        <div>
+          <p style={styles.sectionSmall}>НАША ІСТОРІЯ</p>
+          <h1 style={styles.pageTitle}>Наш календар 📅</h1>
+        </div>
+      </section>
+
+      {nextEvent && (
+        <section style={styles.calendarNextCard}>
+          <div style={styles.calendarNextIcon}>
+            {getEventIcon(nextEvent.event_type)}
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <div style={styles.calendarNextLabel}>
+              НАЙБЛИЖЧА ПОДІЯ
+            </div>
+
+            <div style={styles.calendarNextTitle}>
+              {nextEvent.title}
+            </div>
+
+            <div style={styles.calendarNextDate}>
+              📅 {nextEvent.event_date}
+            </div>
+          </div>
+
+          <div style={styles.calendarCountdown}>
+            {nextEvent.daysUntil === 0
+              ? "Сьогодні ❤️"
+              : `${nextEvent.daysUntil} дн.`}
+          </div>
+        </section>
+      )}
+
+      <button
+        style={styles.addMomentButton}
+        onClick={() => setShowForm(!showForm)}
+      >
+        {showForm
+          ? "✕ Скасувати"
+          : "＋ Додати важливу дату ❤️"}
+      </button>
+
+      {showForm && (
+        <form
+          style={styles.momentForm}
+          onSubmit={addEvent}
+        >
+          <div style={styles.formTitle}>
+            Нова важлива дата 💕
+          </div>
+
+          <label style={styles.formLabel}>
+            📅 Назва події
+          </label>
+
+          <input
+            type="text"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Наприклад: Наша річниця"
+            style={styles.formInput}
+            required
+          />
+
+          <label style={styles.formLabel}>
+            🗓️ Дата
+          </label>
+
+          <input
+            type="date"
+            value={eventDate}
+            onChange={e => setEventDate(e.target.value)}
+            style={styles.formInput}
+            required
+          />
+
+          <label style={styles.formLabel}>
+            🎂 Тип події
+          </label>
+
+          <select
+            value={eventType}
+            onChange={e => setEventType(e.target.value)}
+            style={styles.formInput}
+          >
+            <option value="anniversary">❤️ Річниця</option>
+            <option value="birthday">🎂 День народження</option>
+            <option value="date">🌹 Побачення</option>
+            <option value="holiday">🎉 Свято</option>
+            <option value="other">📅 Інше</option>
+          </select>
+
+          <label style={styles.formLabel}>
+            📝 Опис
+          </label>
+
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Наприклад: Хочемо поїхати разом..."
+            style={styles.formTextarea}
+            rows={4}
+          />
+
+          <button
+            type="submit"
+            style={styles.saveMomentButton}
+            disabled={saving}
+          >
+            {saving
+              ? "Зберігаю... ❤️"
+              : "💾 Зберегти дату"}
+          </button>
+        </form>
+      )}
+
+      {loading ? (
+        <div style={styles.emptyMoments}>
+          <div style={styles.emptyMomentsIcon}>📅</div>
+          <div style={styles.emptyMomentsTitle}>
+            Завантажуємо календар...
+          </div>
+        </div>
+      ) : events.length === 0 ? (
+        <div style={styles.emptyMoments}>
+          <div style={styles.emptyMomentsIcon}>❤️</div>
+
+          <div style={styles.emptyMomentsTitle}>
+            Поки немає важливих дат
+          </div>
+
+          <div style={styles.emptyMomentsText}>
+            Додайте вашу першу особливу дату ❤️
+          </div>
+        </div>
+      ) : (
+        <div style={styles.momentsList}>
+          {events.map(event => (
+            <article
+              key={event.id}
+              style={styles.calendarEventCard}
+            >
+              <div style={styles.calendarEventIcon}>
+                {getEventIcon(event.event_type)}
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <div style={styles.calendarEventType}>
+                  {getEventName(event.event_type)}
+                </div>
+
+                <h3 style={styles.momentTitle}>
+                  {event.title}
+                </h3>
+
+                <div style={styles.momentDate}>
+                  📅 {event.event_date}
+                </div>
+
+                {event.description && (
+                  <p style={styles.momentDescription}>
+                    {event.description}
+                  </p>
+                )}
+              </div>
+
+              {getDaysUntil(event.event_date) >= 0 && (
+                <div style={styles.eventDays}>
+                  {getDaysUntil(event.event_date) === 0
+                    ? "❤️"
+                    : `${getDaysUntil(event.event_date)} дн.`}
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+            }function DreamsPage(){return <PageWrapper icon="✨" title="Наші мрії" subtitle="Те, що ми хочемо здійснити"><EmptyState icon="🌙" title="Мрії попереду" text="Тут буде наш спільний список мрій та цілей."/></PageWrapper>}
 function PageWrapper({icon,title,subtitle,children}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>{icon}</div><h1 style={styles.pageTitle}>{title}</h1><p style={styles.pageSubtitle}>{subtitle}</p></section>{children}</div>}
 function EmptyState({icon,title,text}){return <div style={styles.emptyState}><div style={styles.emptyIcon}>{icon}</div><h3 style={styles.emptyTitle}>{title}</h3><p style={styles.emptyText}>{text}</p></div>}
 function SettingsPage({profile,couple,isAdmin,startDate,setStartDate,partnerName,setPartnerName,saveSettings,saving,logout}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>⚙️</div><h1 style={styles.pageTitle}>Налаштування</h1><p style={styles.pageSubtitle}>Налаштування нашої пари</p></section>{isAdmin?<section style={styles.settingsCard}><div style={styles.settingsTop}><div style={styles.settingsIcon}>👑</div><div><h2 style={styles.settingsTitle}>Налаштування адміністратора</h2><p style={styles.settingsText}>Тільки адміністратор може змінювати ці налаштування.</p></div></div><form onSubmit={saveSettings} style={styles.form}><label style={styles.label}>❤️ Початок наших стосунків</label><input type="datetime-local" value={startDate} onChange={e=>setStartDate(e.target.value)} style={styles.input} required/><label style={styles.label}>👩 Ім'я коханої</label><input type="text" value={partnerName} onChange={e=>setPartnerName(e.target.value)} placeholder="Наприклад: Даша" style={styles.input} maxLength={40} required/><button type="submit" style={styles.primaryButton} disabled={saving}>{saving?"Зберігаємо...":"Зберегти ❤️"}</button></form></section>:<section style={styles.infoCard}><div style={styles.bigEmoji}>🔒</div><h3 style={styles.infoTitle}>Налаштування доступні адміну</h3><p style={styles.infoText}>Дату початку стосунків та інші важливі параметри може змінювати тільки адміністратор.</p></section>}<section style={styles.accountCard}><div style={styles.accountTitle}>👤 Мій профіль</div><div style={styles.accountRow}><span>Ім'я</span><strong>{profile?.name||"Користувач"}</strong></div><div style={styles.accountRow}><span>Роль</span><strong>{isAdmin?"👑 Адміністратор":"❤️ Учасник пари"}</strong></div><div style={styles.accountRow}><span>Кохана</span><strong>{partnerName||"Даша"}</strong></div>{couple?.invite_code&&<div style={styles.accountRow}><span>Код пари</span><strong>{couple.invite_code}</strong></div>}</section><button style={styles.logoutButton} onClick={logout}>Вийти з акаунта</button></div>}
