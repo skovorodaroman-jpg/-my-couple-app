@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { createRoot } from "react-dom/client";
+import React, {
+    useEffect,
+    useState
+} from "react";
 
+import { createRoot } from "react-dom/client";
 const supabase = window.supabaseClient;
 
 function getLoveTime(startDate) {
