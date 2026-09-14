@@ -1,816 +1,689 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import "./index.css";
 
-const defaultData = {
-    moments: [
-        {
-            title: "Наш перший момент ❤️",
-            date: "14 вересня 2025",
-            text: "Той день, коли все почалося ❤️"
-        }
-    ],
-    events: [
-        {
-            title: "Наша річниця ❤️",
-            date: "14 жовтня 2026",
-            days: 31
-        }
-    ],
-    idea: 0
+const supabase = window.supabaseClient;
+
+const DEFAULT_SETTINGS = {
+    relationship_started_at: new Date().toISOString()
 };
 
-const ideas = [
-    "Зробіть разом сніданок 🥞",
-    "Влаштуйте вечір фільмів 🎬",
-    "Прогуляйтеся разом 🌹",
-    "Зробіть спільне фото 📸",
-    "Напишіть одне одному по 5 приємних слів ❤️",
-    "Влаштуйте романтичну вечерю 🕯️",
-    "Згадайте ваш найкращий день разом 💕",
-    "Пограйте разом у якусь гру 🎮",
-    "Підіть у нове для вас місце 🌍",
-    "Зробіть один одному маленький подарунок 🎁"
-];
+function calculateLoveTime(startDate) {
+    const start = new Date(startDate);
+    const now = new Date();
 
-const questions = [
-    "Що тобі найбільше подобається в наших стосунках?",
-    "Який наш спільний момент ти ніколи не забудеш?",
-    "Куди ти хочеш поїхати зі мною?",
-    "Яке наше побачення було для тебе найкращим?",
-    "Що ти хочеш зробити разом цього року?",
-    "Яка моя риса тобі подобається найбільше?",
-    "Яка наша спільна мрія?",
-    "Що змушує тебе посміхатися, коли ти думаєш про мене?"
-];
+    if (isNaN(start.getTime())) {
+        return {
+            years: 0,
+            months: 0,
+            days: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0
+        };
+    }
 
-function App({ coupleId, inviteCode, initialData }) {
-    const [moments, setMoments] = useState(
-        initialData?.moments || defaultData.moments
+    let years = now.getFullYear() - start.getFullYear();
+    let months = now.getMonth() - start.getMonth();
+    let days = now.getDate() - start.getDate();
+
+    if (days < 0) {
+        months--;
+
+        const previousMonth = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            0
+        );
+
+        days += previousMonth.getDate();
+    }
+
+    if (months < 0) {
+        years--;
+        months += 12;
+    }
+
+    const startWithoutDateParts = new Date(
+        start.getFullYear() + years,
+        start.getMonth() + months,
+        start.getDate()
     );
 
-    const [events, setEvents] = useState(
-        initialData?.events || defaultData.events
+    let remainingMs = now - startWithoutDateParts;
+
+    if (remainingMs < 0) {
+        remainingMs = 0;
+    }
+
+    const seconds = Math.floor(remainingMs / 1000) % 60;
+    const minutes = Math.floor(remainingMs / (1000 * 60)) % 60;
+    const hours = Math.floor(remainingMs / (1000 * 60 * 60)) % 24;
+
+    return {
+        years,
+        months,
+        days,
+        hours,
+        minutes,
+        seconds
+    };
+}
+
+function formatNumber(number) {
+    return String(number).padStart(2, "0");
+}
+
+function App({
+    user,
+    profile,
+    couple,
+    settings,
+    onSettingsChange
+}) {
+    const [activePage, setActivePage] = useState("home");
+
+    const isAdmin = profile?.role === "admin";
+
+    const [loveTime, setLoveTime] = useState(
+        calculateLoveTime(settings.relationship_started_at)
     );
 
-    const [idea, setIdea] = useState(
-        initialData?.idea ?? defaultData.idea
+    const [relationshipDate, setRelationshipDate] = useState(
+        settings.relationship_started_at
+            ? new Date(settings.relationship_started_at)
+                .toISOString()
+                .slice(0, 16)
+            : ""
     );
 
-    const [newMoment, setNewMoment] = useState({
-        title: "",
-        date: "",
-        text: ""
-    });
+    const [savingDate, setSavingDate] = useState(false);
+    const [saveMessage, setSaveMessage] = useState("");
 
-    const [question, setQuestion] = useState("");
-    const [answer, setAnswer] = useState("");
-    const [sent, setSent] = useState(false);
-
-    const [surprise, setSurprise] = useState(false);
-
-    // Зберігаємо дані в Supabase
     useEffect(() => {
-        if (!coupleId) return;
+        const updateCounter = () => {
+            setLoveTime(
+                calculateLoveTime(settings.relationship_started_at)
+            );
+        };
 
-        const timer = setTimeout(async () => {
-            const dataToSave = {
-                moments,
-                events,
-                idea
-            };
+        updateCounter();
 
-            const { error } = await window.supabaseClient
-                .from("couple_data")
-                .update({
-                    data: dataToSave,
-                    updated_at: new Date().toISOString()
-                })
-                .eq("couple_id", coupleId);
+        const interval = setInterval(updateCounter, 1000);
 
-            if (error) {
-                console.error("Помилка збереження:", error);
-            } else {
-                console.log("✅ Дані пари збережено");
-            }
-        }, 700);
+        return () => clearInterval(interval);
+    }, [settings.relationship_started_at]);
 
-        return () => clearTimeout(timer);
-    }, [moments, events, idea, coupleId]);
+    useEffect(() => {
+        setRelationshipDate(
+            settings.relationship_started_at
+                ? new Date(settings.relationship_started_at)
+                    .toISOString()
+                    .slice(0, 16)
+                : ""
+        );
+    }, [settings.relationship_started_at]);
 
-    function addMoment(event) {
-        event.preventDefault();
-
-        if (!newMoment.title.trim()) {
-            alert("Введи назву моменту ❤️");
+    async function saveRelationshipDate() {
+        if (!isAdmin) {
             return;
         }
 
-        const moment = {
-            title: newMoment.title,
-            date: newMoment.date,
-            text: newMoment.text
-        };
+        if (!relationshipDate) {
+            setSaveMessage("Вкажи дату початку ❤️");
+            return;
+        }
 
-        setMoments((prev) => [...prev, moment]);
+        setSavingDate(true);
+        setSaveMessage("");
 
-        setNewMoment({
-            title: "",
-            date: "",
-            text: ""
+        const newDate = new Date(relationshipDate).toISOString();
+
+        const { error } = await supabase
+            .from("couple_settings")
+            .upsert(
+                {
+                    couple_id: couple.id,
+                    relationship_started_at: newDate,
+                    updated_at: new Date().toISOString()
+                },
+                {
+                    onConflict: "couple_id"
+                }
+            );
+
+        setSavingDate(false);
+
+        if (error) {
+            console.error(error);
+            setSaveMessage(
+                "❌ Не вдалося зберегти. Перевір права Supabase."
+            );
+            return;
+        }
+
+        onSettingsChange({
+            ...settings,
+            relationship_started_at: newDate
         });
+
+        setSaveMessage("❤️ Лічильник оновлено!");
+
+        setTimeout(() => {
+            setSaveMessage("");
+        }, 3000);
     }
 
-    function removeMoment(index) {
-        if (!confirm("Видалити цей момент?")) return;
-
-        setMoments((prev) =>
-            prev.filter((_, i) => i !== index)
-        );
-    }
-
-    function nextIdea() {
-        setIdea((prev) => (prev + 1) % ideas.length);
-    }
-
-    function chooseQuestion() {
-        const random =
-            questions[Math.floor(Math.random() * questions.length)];
-
-        setQuestion(random);
-        setAnswer("");
-        setSent(false);
-    }
-
-    function sendAnswer() {
-        if (!answer.trim()) return;
-
-        setSent(true);
-    }
-
-    function logout() {
-        window.supabaseClient.auth.signOut().then(() => {
-            window.location.href = "/login.html";
+    function navigate(page) {
+        setActivePage(page);
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
         });
     }
 
     return (
         <div className="app">
 
-            <header className="header">
-                <div>
-                    <h1>Ми ❤️</h1>
-                    <p>Наш маленький світ</p>
+            <style>{`
+                * {
+                    box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    font-family:
+                        -apple-system,
+                        BlinkMacSystemFont,
+                        "Segoe UI",
+                        Roboto,
+                        Arial,
+                        sans-serif;
+                    background: #fff7fa;
+                    color: #27151d;
+                }
+
+                button,
+                input {
+                    font-family: inherit;
+                }
+
+                button {
+                    cursor: pointer;
+                }
+
+                .app {
+                    min-height: 100vh;
+                    background:
+                        radial-gradient(
+                            circle at top right,
+                            rgba(255, 190, 210, 0.35),
+                            transparent 30%
+                        ),
+                        #fff7fa;
+                    padding-bottom: 90px;
+                }
+
+                .topbar {
+                    width: 100%;
+                    padding: 20px 20px 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+
+                .brand {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .brand-heart {
+                    width: 42px;
+                    height: 42px;
+                    border-radius: 14px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #ff477e;
+                    color: white;
+                    font-size: 22px;
+                    box-shadow: 0 8px 25px rgba(255, 71, 126, .25);
+                }
+
+                .brand-title {
+                    font-size: 20px;
+                    font-weight: 800;
+                    letter-spacing: -0.5px;
+                }
+
+                .brand-subtitle {
+                    color: #9b7f89;
+                    font-size: 12px;
+                    margin-top: 2px;
+                }
+
+                .profile-button {
+                    width: 42px;
+                    height: 42px;
+                    border: none;
+                    border-radius: 50%;
+                    background: white;
+                    box-shadow: 0 5px 20px rgba(70, 30, 45, .08);
+                    font-size: 20px;
+                }
+
+                .container {
+                    width: min(100%, 760px);
+                    margin: 0 auto;
+                    padding: 0 16px;
+                }
+
+                .hero {
+                    margin-top: 12px;
+                    padding: 26px 22px;
+                    border-radius: 28px;
+                    background:
+                        linear-gradient(
+                            135deg,
+                            #ff477e,
+                            #ff759c
+                        );
+                    color: white;
+                    position: relative;
+                    overflow: hidden;
+                    box-shadow: 0 18px 45px rgba(255, 71, 126, .25);
+                }
+
+                .hero::after {
+                    content: "❤️";
+                    position: absolute;
+                    right: -10px;
+                    bottom: -28px;
+                    font-size: 150px;
+                    opacity: .12;
+                }
+
+                .hero-small {
+                    opacity: .9;
+                    font-size: 13px;
+                    font-weight: 600;
+                }
+
+                .hero-title {
+                    font-size: 31px;
+                    line-height: 1.05;
+                    margin: 9px 0 10px;
+                    font-weight: 900;
+                    letter-spacing: -1px;
+                }
+
+                .hero-text {
+                    margin: 0;
+                    max-width: 400px;
+                    font-size: 14px;
+                    line-height: 1.5;
+                    opacity: .9;
+                }
+
+                .counter-card {
+                    margin-top: 16px;
+                    background: white;
+                    border-radius: 28px;
+                    padding: 22px 16px;
+                    box-shadow: 0 12px 35px rgba(70, 30, 45, .08);
+                }
+
+                .section-title {
+                    font-size: 19px;
+                    font-weight: 800;
+                    margin: 0 0 5px;
+                }
+
+                .section-subtitle {
+                    font-size: 13px;
+                    color: #9b7f89;
+                    margin-bottom: 20px;
+                }
+
+                .counter-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 9px;
+                }
+
+                .counter-item {
+                    background: #fff2f6;
+                    border-radius: 18px;
+                    padding: 14px 5px;
+                    text-align: center;
+                }
+
+                .counter-number {
+                    font-size: 25px;
+                    font-weight: 900;
+                    color: #ff477e;
+                }
+
+                .counter-label {
+                    color: #987c86;
+                    font-size: 11px;
+                    margin-top: 4px;
+                }
+
+                .counter-bottom {
+                    margin-top: 10px;
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 9px;
+                }
+
+                .quick-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 12px;
+                    margin-top: 16px;
+                }
+
+                .feature {
+                    background: white;
+                    border: none;
+                    text-align: left;
+                    border-radius: 23px;
+                    padding: 19px;
+                    min-height: 125px;
+                    box-shadow: 0 10px 28px rgba(70, 30, 45, .06);
+                    transition: transform .15s ease;
+                }
+
+                .feature:active {
+                    transform: scale(.97);
+                }
+
+                .feature-icon {
+                    font-size: 28px;
+                    margin-bottom: 12px;
+                }
+
+                .feature-title {
+                    font-size: 16px;
+                    font-weight: 800;
+                }
+
+                .feature-text {
+                    font-size: 12px;
+                    color: #9b7f89;
+                    margin-top: 5px;
+                    line-height: 1.4;
+                }
+
+                .page {
+                    margin-top: 14px;
+                }
+
+                .page-card {
+                    background: white;
+                    border-radius: 26px;
+                    padding: 22px;
+                    box-shadow: 0 10px 30px rgba(70, 30, 45, .07);
+                }
+
+                .page-icon {
+                    font-size: 40px;
+                    margin-bottom: 10px;
+                }
+
+                .page-title {
+                    font-size: 25px;
+                    font-weight: 900;
+                    margin-bottom: 7px;
+                }
+
+                .page-description {
+                    color: #9b7f89;
+                    line-height: 1.5;
+                    font-size: 14px;
+                }
+
+                .settings-section {
+                    margin-top: 14px;
+                }
+
+                .settings-card {
+                    background: white;
+                    border-radius: 25px;
+                    padding: 20px;
+                    box-shadow: 0 10px 30px rgba(70, 30, 45, .07);
+                }
+
+                .settings-label {
+                    display: block;
+                    font-size: 13px;
+                    font-weight: 700;
+                    margin-bottom: 8px;
+                }
+
+                .settings-input {
+                    width: 100%;
+                    border: 1px solid #eadde2;
+                    border-radius: 14px;
+                    padding: 13px;
+                    font-size: 15px;
+                    outline: none;
+                    background: #fffafb;
+                }
+
+                .settings-input:focus {
+                    border-color: #ff477e;
+                }
+
+                .save-button {
+                    width: 100%;
+                    border: none;
+                    border-radius: 15px;
+                    padding: 14px;
+                    margin-top: 12px;
+                    background: #ff477e;
+                    color: white;
+                    font-weight: 800;
+                    font-size: 15px;
+                }
+
+                .save-message {
+                    margin-top: 10px;
+                    text-align: center;
+                    font-size: 13px;
+                    color: #ff477e;
+                    font-weight: 700;
+                }
+
+                .couple-code {
+                    margin-top: 14px;
+                    background: #fff0f5;
+                    border-radius: 18px;
+                    padding: 16px;
+                    text-align: center;
+                }
+
+                .couple-code-label {
+                    font-size: 11px;
+                    color: #a1848e;
+                }
+
+                .couple-code-value {
+                    margin-top: 4px;
+                    font-size: 25px;
+                    font-weight: 900;
+                    letter-spacing: 3px;
+                    color: #ff477e;
+                }
+
+                .admin-badge {
+                    display: inline-flex;
+                    padding: 6px 10px;
+                    border-radius: 999px;
+                    background: #fff0f5;
+                    color: #ff477e;
+                    font-size: 11px;
+                    font-weight: 800;
+                    margin-top: 8px;
+                }
+
+                .bottom-nav {
+                    position: fixed;
+                    z-index: 50;
+                    bottom: 12px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: min(calc(100% - 24px), 650px);
+                    background: rgba(255,255,255,.95);
+                    backdrop-filter: blur(18px);
+                    border: 1px solid rgba(230, 210, 218, .8);
+                    border-radius: 23px;
+                    padding: 7px;
+                    display: flex;
+                    justify-content: space-around;
+                    box-shadow: 0 12px 35px rgba(50,20,35,.15);
+                }
+
+                .nav-button {
+                    flex: 1;
+                    border: none;
+                    background: transparent;
+                    border-radius: 17px;
+                    padding: 8px 3px;
+                    color: #a58a94;
+                    font-size: 10px;
+                    font-weight: 700;
+                }
+
+                .nav-button.active {
+                    background: #fff0f5;
+                    color: #ff477e;
+                }
+
+                .nav-icon {
+                    display: block;
+                    font-size: 20px;
+                    margin-bottom: 2px;
+                }
+
+                .welcome {
+                    text-align: center;
+                    color: #9b7f89;
+                    font-size: 12px;
+                    margin-top: 18px;
+                    margin-bottom: 10px;
+                }
+
+                @media (min-width: 650px) {
+                    .container {
+                        padding: 0 20px;
+                    }
+
+                    .quick-grid {
+                        grid-template-columns: repeat(4, 1fr);
+                    }
+
+                    .counter-grid {
+                        grid-template-columns: repeat(6, 1fr);
+                    }
+
+                    .counter-bottom {
+                        display: none;
+                    }
+                }
+            `}</style>
+
+            <header className="topbar">
+                <div className="brand">
+                    <div className="brand-heart">❤️</div>
+
+                    <div>
+                        <div className="brand-title">
+                            My Couple
+                        </div>
+
+                        <div className="brand-subtitle">
+                            тільки для нас двох
+                        </div>
+                    </div>
                 </div>
 
-                <button className="logout" onClick={logout}>
-                    Вийти
+                <button
+                    className="profile-button"
+                    onClick={() => navigate("settings")}
+                >
+                    ⚙️
                 </button>
             </header>
 
-            <main>
+            <main className="container">
 
-                {/* Профіль пари */}
-                <section className="card profile-card">
-                    <div className="heart">❤️</div>
+                {activePage === "home" && (
+                    <>
+                        <section className="hero">
+                            <div className="hero-small">
+                                ❤️ Наша історія
+                            </div>
 
-                    <h2>Наша пара</h2>
+                            <h1 className="hero-title">
+                                Разом — краще
+                            </h1>
 
-                    <p className="muted">
-                        Код вашої пари
-                    </p>
-
-                    <div className="code">
-                        {inviteCode || "Завантаження..."}
-                    </div>
-
-                    <p className="hint">
-                        Передайте цей код своїй коханій людині,
-                        щоб вона могла приєднатися до вашої пари.
-                    </p>
-                </section>
-
-
-                {/* Наші моменти */}
-                <section className="card">
-                    <h2>💕 Наші моменти</h2>
-
-                    <div className="moments">
-
-                        {moments.length === 0 && (
-                            <p className="muted">
-                                Поки що моментів немає ❤️
+                            <p className="hero-text">
+                                Тут зберігаються наші моменти,
+                                мрії, важливі дати та все,
+                                що робить нашу історію особливою.
                             </p>
-                        )}
+                        </section>
 
-                        {moments.map((moment, index) => (
-                            <div className="moment" key={index}>
+                        <section className="counter-card">
+                            <h2 className="section-title">
+                                Ми разом вже 💕
+                            </h2>
 
-                                <div className="moment-top">
-                                    <h3>{moment.title}</h3>
-
-                                    <button
-                                        className="delete"
-                                        onClick={() =>
-                                            removeMoment(index)
-                                        }
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-
-                                {moment.date && (
-                                    <div className="date">
-                                        📅 {moment.date}
-                                    </div>
-                                )}
-
-                                {moment.text && (
-                                    <p>{moment.text}</p>
-                                )}
-                            </div>
-                        ))}
-
-                    </div>
-
-                    <form
-                        className="form"
-                        onSubmit={addMoment}
-                    >
-                        <h3>Додати момент ❤️</h3>
-
-                        <input
-                            type="text"
-                            placeholder="Назва моменту"
-                            value={newMoment.title}
-                            onChange={(e) =>
-                                setNewMoment({
-                                    ...newMoment,
-                                    title: e.target.value
-                                })
-                            }
-                        />
-
-                        <input
-                            type="text"
-                            placeholder="Дата"
-                            value={newMoment.date}
-                            onChange={(e) =>
-                                setNewMoment({
-                                    ...newMoment,
-                                    date: e.target.value
-                                })
-                            }
-                        />
-
-                        <textarea
-                            placeholder="Розкажіть про цей момент..."
-                            value={newMoment.text}
-                            onChange={(e) =>
-                                setNewMoment({
-                                    ...newMoment,
-                                    text: e.target.value
-                                })
-                            }
-                        />
-
-                        <button
-                            className="primary"
-                            type="submit"
-                        >
-                            Додати момент ❤️
-                        </button>
-                    </form>
-                </section>
-
-
-                {/* Події */}
-                <section className="card">
-                    <h2>📅 Наші події</h2>
-
-                    {events.map((event, index) => (
-                        <div
-                            className="event"
-                            key={index}
-                        >
-                            <div>
-                                <h3>{event.title}</h3>
-
-                                <p>
-                                    {event.date}
-                                </p>
+                            <div className="section-subtitle">
+                                І кожна секунда має значення
                             </div>
 
-                            <div className="days">
-                                {event.days}
-                                <span>днів</span>
+                            <div className="counter-grid">
+
+                                <CounterItem
+                                    number={loveTime.years}
+                                    label="років"
+                                />
+
+                                <CounterItem
+                                    number={loveTime.months}
+                                    label="місяців"
+                                />
+
+                                <CounterItem
+                                    number={loveTime.days}
+                                    label="днів"
+                                />
+
+                                <CounterItem
+                                    number={loveTime.hours}
+                                    label="годин"
+                                />
+
+                                <CounterItem
+                                    number={loveTime.minutes}
+                                    label="хвилин"
+                                />
+
+                                <CounterItem
+                                    number={loveTime.seconds}
+                                    label="секунд"
+                                />
+
                             </div>
-                        </div>
-                    ))}
-                </section>
+                        </section>
 
+                        <div className="quick-grid">
 
-                {/* Ідея для побачення */}
-                <section className="card idea-card">
-
-                    <h2>💡 Ідея для нас</h2>
-
-                    <div className="idea">
-                        {ideas[idea]}
-                    </div>
-
-                    <button
-                        className="primary"
-                        onClick={nextIdea}
-                    >
-                        Інша ідея ✨
-                    </button>
-
-                </section>
-
-
-                {/* Питання для пари */}
-                <section className="card">
-
-                    <h2>💬 Питання для нас</h2>
-
-                    {!question ? (
-                        <>
-                            <p className="muted">
-                                Оберіть випадкове питання
-                                та поговоріть про нього разом ❤️
-                            </p>
-
-                            <button
-                                className="primary"
-                                onClick={chooseQuestion}
-                            >
-                                Отримати питання 💕
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="question">
-                                {question}
-                            </div>
-
-                            <textarea
-                                placeholder="Ваша відповідь..."
-                                value={answer}
-                                onChange={(e) =>
-                                    setAnswer(e.target.value)
-                                }
-                            />
-
-                            <button
-                                className="primary"
-                                onClick={sendAnswer}
-                            >
-                                Зберегти відповідь ❤️
-                            </button>
-
-                            {sent && (
-                                <div className="success">
-                                    ❤️ Відповідь збережено!
-                                </div>
-                            )}
-
-                            <button
-                                className="secondary"
-                                onClick={chooseQuestion}
-                            >
-                                Інше питання
-                            </button>
-                        </>
-                    )}
-
-                </section>
-
-
-                {/* Сюрприз */}
-                <section className="card surprise-card">
-
-                    <h2>🎁 Маленький сюрприз</h2>
-
-                    {!surprise ? (
-                        <>
-                            <p>
-                                Тут є щось особливе для тебе...
-                            </p>
-
-                            <button
-                                className="primary"
-                                onClick={() => setSurprise(true)}
-                            >
-                                Відкрити ❤️
-                            </button>
-                        </>
-                    ) : (
-                        <div className="surprise">
-                            <div className="big-heart">
-                                ❤️
-                            </div>
-
-                            <h3>
-                                Я тебе дуже сильно люблю! 🥰
-                            </h3>
-
-                            <p>
-                                Дякую тобі за кожен наш день,
-                                кожну посмішку і кожну мить разом.
-                                Нехай таких моментів буде ще
-                                дуже-дуже багато ❤️
-                            </p>
-                        </div>
-                    )}
-
-                </section>
-
-            </main>
-
-            <footer>
-                <p>
-                    Зроблено з любов'ю ❤️
-                </p>
-            </footer>
-
-        </div>
-    );
-}
-
-
-async function startApp() {
-
-    console.log("🚀 Запуск My Couple...");
-
-    if (!window.supabaseClient) {
-        console.error("❌ Supabase Client не знайдений");
-
-        document.body.innerHTML = `
-            <div style="
-                padding:40px;
-                text-align:center;
-                font-family:Arial;
-            ">
-                <h2>❌ Помилка Supabase</h2>
-                <p>Не вдалося завантажити Supabase.</p>
-                <button onclick="location.reload()">
-                    Оновити сторінку
-                </button>
-            </div>
-        `;
-
-        return;
-    }
-
-
-    // =========================================
-    // 1. Перевіряємо авторизацію
-    // =========================================
-
-    const {
-        data: sessionData,
-        error: sessionError
-    } = await window.supabaseClient.auth.getSession();
-
-    if (sessionError) {
-        console.error(
-            "Помилка отримання сесії:",
-            sessionError
-        );
-
-        window.location.href = "/login.html";
-        return;
-    }
-
-    const session = sessionData?.session;
-
-    if (!session) {
-        console.log("❌ Користувач не авторизований");
-
-        window.location.href = "/login.html";
-        return;
-    }
-
-    const user = session.user;
-
-    console.log("✅ Користувач авторизований:", user.id);
-
-
-    // =========================================
-    // 2. Шукаємо існуючу пару
-    // =========================================
-
-    let coupleId = null;
-    let inviteCode = null;
-    let initialData = null;
-
-    const {
-        data: membership,
-        error: membershipError
-    } = await window.supabaseClient
-        .from("couple_members")
-        .select("couple_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-
-    if (membershipError) {
-
-        console.error(
-            "Помилка пошуку пари:",
-            membershipError
-        );
-
-        document.body.innerHTML = `
-            <div style="
-                padding:40px;
-                text-align:center;
-                font-family:Arial;
-            ">
-                <h2>❌ Не вдалося завантажити пару</h2>
-
-                <p>
-                    ${membershipError.message}
-                </p>
-
-                <button onclick="location.reload()">
-                    Спробувати ще раз
-                </button>
-            </div>
-        `;
-
-        return;
-    }
-
-
-    // =========================================
-    // 3. Якщо пари немає — створюємо
-    // =========================================
-
-    if (!membership) {
-
-    console.log("👩‍❤️‍👨 Пари немає.");
-
-    const inviteCodeFromUser =
-        session.user.user_metadata?.invite_code?.trim().toUpperCase();
-
-    if (inviteCodeFromUser) {
-
-        console.log("🔑 Користувач має код пари:", inviteCodeFromUser);
-
-        const { data: joinedCouple, error: joinError } =
-            await window.supabaseClient.rpc(
-                "join_couple",
-                {
-                    entered_invite_code: inviteCodeFromUser
-                }
-            );
-
-        if (joinError) {
-
-            console.error(
-                "Помилка приєднання до пари:",
-                joinError
-            );
-
-            document.body.innerHTML = `
-                <div style="padding:40px;text-align:center;font-family:Arial;">
-                    <h2>❌ Не вдалося приєднатися</h2>
-
-                    <p>${joinError.message}</p>
-
-                    <button onclick="location.reload()">
-                        Спробувати ще раз
-                    </button>
-                </div>
-            `;
-
-            return;
-        }
-
-        console.log(
-            "❤️ Користувача приєднано:",
-            joinedCouple
-        );
-
-        coupleId = joinedCouple.couple_id;
-        inviteCode = joinedCouple.invite_code;
-
-    } else {
-
-        console.log(
-            "👤 Коду немає. Створюємо нову пару..."
-        );
-
-        const {
-            data: createdCouple,
-            error: createError
-        } = await window.supabaseClient.rpc(
-            "create_couple"
-        );
-
-        if (createError) {
-
-            console.error(
-                "Помилка створення пари:",
-                createError
-            );
-
-            document.body.innerHTML = `
-                <div style="padding:40px;text-align:center;font-family:Arial;">
-                    <h2>❌ Не вдалося створити пару</h2>
-
-                    <p>${createError.message}</p>
-
-                    <button onclick="location.reload()">
-                        Оновити
-                    </button>
-                </div>
-            `;
-
-            return;
-        }
-
-        console.log(
-            "✅ Нову пару створено:",
-            createdCouple
-        );
-
-        coupleId = createdCouple.couple_id;
-        inviteCode = createdCouple.invite_code;
-    }
-    }
-
-        if (createError) {
-
-            console.error(
-                "Помилка створення пари:",
-                createError
-            );
-
-            document.body.innerHTML = `
-                <div style="
-                    padding:40px;
-                    text-align:center;
-                    font-family:Arial;
-                ">
-                    <h2>❌ Не вдалося створити пару</h2>
-
-                    <p>
-                        ${createError.message}
-                    </p>
-
-                    <p>
-                        Перезавантаж сторінку та спробуй ще раз.
-                    </p>
-
-                    <button onclick="location.reload()">
-                        Оновити
-                    </button>
-                </div>
-            `;
-
-            return;
-        }
-
-
-        console.log(
-            "✅ Пару створено:",
-            createdCouple
-        );
-
-
-        coupleId = createdCouple.couple_id;
-        inviteCode = createdCouple.invite_code;
-
-    } else {
-
-        // =========================================
-        // 4. Пара вже існує
-        // =========================================
-
-        coupleId = membership.couple_id;
-
-        console.log(
-            "✅ Знайдено існуючу пару:",
-            coupleId
-        );
-    }
-
-
-    // =========================================
-    // 5. Отримуємо код пари
-    // =========================================
-
-    const {
-        data: couple,
-        error: coupleError
-    } = await window.supabaseClient
-        .from("couples")
-        .select("id, invite_code")
-        .eq("id", coupleId)
-        .single();
-
-
-    if (coupleError) {
-
-        console.error(
-            "Помилка отримання коду:",
-            coupleError
-        );
-
-        document.body.innerHTML = `
-            <div style="
-                padding:40px;
-                text-align:center;
-                font-family:Arial;
-            ">
-                <h2>❌ Не вдалося отримати код пари</h2>
-
-                <p>
-                    ${coupleError.message}
-                </p>
-            </div>
-        `;
-
-        return;
-    }
-
-
-    inviteCode = couple.invite_code;
-
-
-    console.log(
-        "🔑 Код пари:",
-        inviteCode
-    );
-
-
-    // =========================================
-    // 6. Отримуємо дані пари
-    // =========================================
-
-    const {
-        data: coupleData,
-        error: dataError
-    } = await window.supabaseClient
-        .from("couple_data")
-        .select("data")
-        .eq("couple_id", coupleId)
-        .maybeSingle();
-
-
-    if (dataError) {
-
-        console.error(
-            "Помилка отримання даних:",
-            dataError
-        );
-
-    } else if (coupleData?.data) {
-
-        initialData = coupleData.data;
-
-        console.log(
-            "✅ Дані пари завантажено"
-        );
-    }
-
-
-    // =========================================
-    // 7. Запускаємо React
-    // =========================================
-
-    const rootElement =
-        document.getElementById("root");
-
-    if (!rootElement) {
-
-        console.error(
-            "❌ Елемент #root не знайдений"
-        );
-
-        return;
-    }
-
-
-    createRoot(rootElement).render(
-        <App
-            coupleId={coupleId}
-            inviteCode={inviteCode}
-            initialData={initialData}
-        />
-    );
-
-    console.log(
-        "❤️ My Couple успішно запущено!"
-    );
-}
-
-
-// =========================================
-// Запуск
-// =========================================
-
-startApp();
+                            <Feature
+                                icon="💕"
+                                title="Наші моменти"
+                                text="Фо
