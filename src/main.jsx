@@ -1,14 +1,9 @@
-
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 const supabase = window.supabaseClient;
 
-const DEFAULT_SETTINGS = {
-    relationship_started_at: new Date().toISOString()
-};
-
-function calculateLoveTime(startDate) {
+function getLoveTime(startDate) {
     const start = new Date(startDate);
     const now = new Date();
 
@@ -44,21 +39,17 @@ function calculateLoveTime(startDate) {
         months += 12;
     }
 
-    const startWithoutDateParts = new Date(
-        start.getFullYear() + years,
-        start.getMonth() + months,
-        start.getDate()
+    const totalMs = now - start;
+    const totalSeconds = Math.max(
+        0,
+        Math.floor(totalMs / 1000)
     );
 
-    let remainingMs = now - startWithoutDateParts;
-
-    if (remainingMs < 0) {
-        remainingMs = 0;
-    }
-
-    const seconds = Math.floor(remainingMs / 1000) % 60;
-    const minutes = Math.floor(remainingMs / (1000 * 60)) % 60;
-    const hours = Math.floor(remainingMs / (1000 * 60 * 60)) % 24;
+    const seconds = totalSeconds % 60;
+    const minutes =
+        Math.floor(totalSeconds / 60) % 60;
+    const hours =
+        Math.floor(totalSeconds / 3600) % 24;
 
     return {
         years,
@@ -74,842 +65,638 @@ function formatNumber(number) {
     return String(number).padStart(2, "0");
 }
 
-function App({
-    user,
-    profile,
-    couple,
-    settings,
-    onSettingsChange
-}) {
-    const [activePage, setActivePage] = useState("home");
+function App() {
+    const [session, setSession] = useState(null);
+    const [profile, setProfile] = useState(null);
+    const [couple, setCouple] = useState(null);
+    const [settings, setSettings] = useState(null);
 
-    const isAdmin = profile?.role === "admin";
+    const [page, setPage] = useState("home");
+    const [loveTime, setLoveTime] = useState(null);
 
-    const [loveTime, setLoveTime] = useState(
-        calculateLoveTime(settings.relationship_started_at)
-    );
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
 
-    const [relationshipDate, setRelationshipDate] = useState(
-        settings.relationship_started_at
-            ? new Date(settings.relationship_started_at)
-                .toISOString()
-                .slice(0, 16)
-            : ""
-    );
-
-    const [savingDate, setSavingDate] = useState(false);
-    const [saveMessage, setSaveMessage] = useState("");
+    const [startDate, setStartDate] = useState("");
 
     useEffect(() => {
+        loadApp();
+
+        const {
+            data: listener
+        } = supabase.auth.onAuthStateChange(
+            (_event, newSession) => {
+                setSession(newSession);
+            }
+        );
+
+        return () => {
+            listener.subscription.unsubscribe();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!settings?.relationship_started_at) {
+            return;
+        }
+
         const updateCounter = () => {
             setLoveTime(
-                calculateLoveTime(settings.relationship_started_at)
+                getLoveTime(
+                    settings.relationship_started_at
+                )
             );
         };
 
         updateCounter();
 
-        const interval = setInterval(updateCounter, 1000);
+        const interval = setInterval(
+            updateCounter,
+            1000
+        );
 
         return () => clearInterval(interval);
-    }, [settings.relationship_started_at]);
+    }, [settings]);
 
-    useEffect(() => {
-        setRelationshipDate(
-            settings.relationship_started_at
-                ? new Date(settings.relationship_started_at)
-                    .toISOString()
-                    .slice(0, 16)
-                : ""
-        );
-    }, [settings.relationship_started_at]);
+    async function loadApp() {
+        try {
+            setLoading(true);
 
-    async function saveRelationshipDate() {
-        if (!isAdmin) {
-            return;
-        }
-
-        if (!relationshipDate) {
-            setSaveMessage("Вкажи дату початку ❤️");
-            return;
-        }
-
-        setSavingDate(true);
-        setSaveMessage("");
-
-        const newDate = new Date(relationshipDate).toISOString();
-
-        const { error } = await supabase
-            .from("couple_settings")
-            .upsert(
-                {
-                    couple_id: couple.id,
-                    relationship_started_at: newDate,
-                    updated_at: new Date().toISOString()
-                },
-                {
-                    onConflict: "couple_id"
+            const {
+                data: {
+                    session: currentSession
                 }
-            );
+            } = await supabase.auth.getSession();
 
-        setSavingDate(false);
+            if (!currentSession) {
+                setLoading(false);
+                return;
+            }
 
-        if (error) {
-            console.error(error);
-            setSaveMessage(
-                "❌ Не вдалося зберегти. Перевір права Supabase."
+            setSession(currentSession);
+
+            const {
+                data: profileData,
+                error: profileError
+            } = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", currentSession.user.id)
+                .single();
+
+            if (profileError) {
+                console.error(profileError);
+            }
+
+            setProfile(profileData);
+
+            const {
+                data: memberData,
+                error: memberError
+            } = await supabase
+                .from("couple_members")
+                .select("couple_id")
+                .eq(
+                    "user_id",
+                    currentSession.user.id
+                )
+                .single();
+
+            if (memberError || !memberData) {
+                console.error(memberError);
+                setLoading(false);
+                return;
+            }
+
+            const {
+                data: coupleData,
+                error: coupleError
+            } = await supabase
+                .from("couples")
+                .select("*")
+                .eq(
+                    "id",
+                    memberData.couple_id
+                )
+                .single();
+
+            if (coupleError) {
+                console.error(coupleError);
+            }
+
+            setCouple(coupleData);
+
+            let {
+                data: settingsData
+            } = await supabase
+                .from("couple_settings")
+                .select("*")
+                .eq(
+                    "couple_id",
+                    memberData.couple_id
+                )
+                .maybeSingle();
+
+            if (
+                !settingsData &&
+                profileData?.role === "admin"
+            ) {
+                const {
+                    data: newSettings,
+                    error: insertError
+                } = await supabase
+                    .from("couple_settings")
+                    .insert({
+                        couple_id:
+                            memberData.couple_id
+                    })
+                    .select()
+                    .single();
+
+                if (insertError) {
+                    console.error(
+                        insertError
+                    );
+                } else {
+                    settingsData = newSettings;
+                }
+            }
+
+            setSettings(settingsData);
+
+            if (
+                settingsData
+                ?.relationship_started_at
+            ) {
+                const date =
+                    new Date(
+                        settingsData
+                            .relationship_started_at
+                    );
+
+                const localDate =
+                    new Date(
+                        date.getTime() -
+                        date.getTimezoneOffset()
+                        * 60000
+                    )
+                    .toISOString()
+                    .slice(0, 16);
+
+                setStartDate(localDate);
+            }
+
+        } catch (error) {
+            console.error(
+                "Помилка завантаження:",
+                error
             );
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function saveStartDate(event) {
+        event.preventDefault();
+
+        if (!couple || !startDate) {
             return;
         }
 
-        onSettingsChange({
-            ...settings,
-            relationship_started_at: newDate
-        });
+        try {
+            setSaving(true);
 
-        setSaveMessage("❤️ Лічильник оновлено!");
+            const {
+                error
+            } = await supabase
+                .from("couple_settings")
+                .upsert({
+                    couple_id: couple.id,
+                    relationship_started_at:
+                        new Date(
+                            startDate
+                        ).toISOString(),
+                    updated_at:
+                        new Date().toISOString()
+                });
 
-        setTimeout(() => {
-            setSaveMessage("");
-        }, 3000);
+            if (error) {
+                throw error;
+            }
+
+            setSettings({
+                ...settings,
+                couple_id: couple.id,
+                relationship_started_at:
+                    new Date(
+                        startDate
+                    ).toISOString(),
+                updated_at:
+                    new Date().toISOString()
+            });
+
+            alert(
+                "❤️ Дату початку стосунків змінено!"
+            );
+
+        } catch (error) {
+            console.error(error);
+
+            alert(
+                "❌ Не вдалося зберегти дату."
+            );
+        } finally {
+            setSaving(false);
+        }
     }
 
-    function navigate(page) {
-        setActivePage(page);
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
+    async function logout() {
+        await supabase.auth.signOut();
+
+        window.location.href =
+            "/login.html";
     }
+
+    if (loading) {
+        return (
+            <div style={styles.loading}>
+                <div style={styles.loadingHeart}>
+                    ❤️
+                </div>
+
+                <div>
+                    Завантажуємо наше кохання...
+                </div>
+            </div>
+        );
+    }
+
+    if (!session) {
+        return (
+            <div style={styles.loading}>
+                <div style={styles.loadingHeart}>
+                    🔐
+                </div>
+
+                <h2>
+                    Потрібно увійти
+                </h2>
+
+                <button
+                    style={styles.primaryButton}
+                    onClick={() => {
+                        window.location.href =
+                            "/login.html";
+                    }}
+                >
+                    Увійти ❤️
+                </button>
+            </div>
+        );
+    }
+
+    const isAdmin =
+        profile?.role === "admin";
 
     return (
-        <div className="app">
+        <div style={styles.app}>
+            <header style={styles.header}>
+                <div>
+                    <div style={styles.logo}>
+                        My Couple
+                    </div>
 
-            <style>{`
-                * {
-                    box-sizing: border-box;
-                }
-
-                body {
-                    margin: 0;
-                    font-family:
-                        -apple-system,
-                        BlinkMacSystemFont,
-                        "Segoe UI",
-                        Roboto,
-                        Arial,
-                        sans-serif;
-                    background: #fff7fa;
-                    color: #27151d;
-                }
-
-                button,
-                input {
-                    font-family: inherit;
-                }
-
-                button {
-                    cursor: pointer;
-                }
-
-                .app {
-                    min-height: 100vh;
-                    background:
-                        radial-gradient(
-                            circle at top right,
-                            rgba(255, 190, 210, 0.35),
-                            transparent 30%
-                        ),
-                        #fff7fa;
-                    padding-bottom: 90px;
-                }
-
-                .topbar {
-                    width: 100%;
-                    padding: 20px 20px 12px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                }
-
-                .brand {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-
-                .brand-heart {
-                    width: 42px;
-                    height: 42px;
-                    border-radius: 14px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: #ff477e;
-                    color: white;
-                    font-size: 22px;
-                    box-shadow: 0 8px 25px rgba(255, 71, 126, .25);
-                }
-
-                .brand-title {
-                    font-size: 20px;
-                    font-weight: 800;
-                    letter-spacing: -0.5px;
-                }
-
-                .brand-subtitle {
-                    color: #9b7f89;
-                    font-size: 12px;
-                    margin-top: 2px;
-                }
-
-                .profile-button {
-                    width: 42px;
-                    height: 42px;
-                    border: none;
-                    border-radius: 50%;
-                    background: white;
-                    box-shadow: 0 5px 20px rgba(70, 30, 45, .08);
-                    font-size: 20px;
-                }
-
-                .container {
-                    width: min(100%, 760px);
-                    margin: 0 auto;
-                    padding: 0 16px;
-                }
-
-                .hero {
-                    margin-top: 12px;
-                    padding: 26px 22px;
-                    border-radius: 28px;
-                    background:
-                        linear-gradient(
-                            135deg,
-                            #ff477e,
-                            #ff759c
-                        );
-                    color: white;
-                    position: relative;
-                    overflow: hidden;
-                    box-shadow: 0 18px 45px rgba(255, 71, 126, .25);
-                }
-
-                .hero::after {
-                    content: "❤️";
-                    position: absolute;
-                    right: -10px;
-                    bottom: -28px;
-                    font-size: 150px;
-                    opacity: .12;
-                }
-
-                .hero-small {
-                    opacity: .9;
-                    font-size: 13px;
-                    font-weight: 600;
-                }
-
-                .hero-title {
-                    font-size: 31px;
-                    line-height: 1.05;
-                    margin: 9px 0 10px;
-                    font-weight: 900;
-                    letter-spacing: -1px;
-                }
-
-                .hero-text {
-                    margin: 0;
-                    max-width: 400px;
-                    font-size: 14px;
-                    line-height: 1.5;
-                    opacity: .9;
-                }
-
-                .counter-card {
-                    margin-top: 16px;
-                    background: white;
-                    border-radius: 28px;
-                    padding: 22px 16px;
-                    box-shadow: 0 12px 35px rgba(70, 30, 45, .08);
-                }
-
-                .section-title {
-                    font-size: 19px;
-                    font-weight: 800;
-                    margin: 0 0 5px;
-                }
-
-                .section-subtitle {
-                    font-size: 13px;
-                    color: #9b7f89;
-                    margin-bottom: 20px;
-                }
-
-                .counter-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 9px;
-                }
-
-                .counter-item {
-                    background: #fff2f6;
-                    border-radius: 18px;
-                    padding: 14px 5px;
-                    text-align: center;
-                }
-
-                .counter-number {
-                    font-size: 25px;
-                    font-weight: 900;
-                    color: #ff477e;
-                }
-
-                .counter-label {
-                    color: #987c86;
-                    font-size: 11px;
-                    margin-top: 4px;
-                }
-
-                .counter-bottom {
-                    margin-top: 10px;
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 9px;
-                }
-
-                .quick-grid {
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 12px;
-                    margin-top: 16px;
-                }
-
-                .feature {
-                    background: white;
-                    border: none;
-                    text-align: left;
-                    border-radius: 23px;
-                    padding: 19px;
-                    min-height: 125px;
-                    box-shadow: 0 10px 28px rgba(70, 30, 45, .06);
-                    transition: transform .15s ease;
-                }
-
-                .feature:active {
-                    transform: scale(.97);
-                }
-
-                .feature-icon {
-                    font-size: 28px;
-                    margin-bottom: 12px;
-                }
-
-                .feature-title {
-                    font-size: 16px;
-                    font-weight: 800;
-                }
-
-                .feature-text {
-                    font-size: 12px;
-                    color: #9b7f89;
-                    margin-top: 5px;
-                    line-height: 1.4;
-                }
-
-                .page {
-                    margin-top: 14px;
-                }
-
-                .page-card {
-                    background: white;
-                    border-radius: 26px;
-                    padding: 22px;
-                    box-shadow: 0 10px 30px rgba(70, 30, 45, .07);
-                }
-
-                .page-icon {
-                    font-size: 40px;
-                    margin-bottom: 10px;
-                }
-
-                .page-title {
-                    font-size: 25px;
-                    font-weight: 900;
-                    margin-bottom: 7px;
-                }
-
-                .page-description {
-                    color: #9b7f89;
-                    line-height: 1.5;
-                    font-size: 14px;
-                }
-
-                .settings-section {
-                    margin-top: 14px;
-                }
-
-                .settings-card {
-                    background: white;
-                    border-radius: 25px;
-                    padding: 20px;
-                    box-shadow: 0 10px 30px rgba(70, 30, 45, .07);
-                }
-
-                .settings-label {
-                    display: block;
-                    font-size: 13px;
-                    font-weight: 700;
-                    margin-bottom: 8px;
-                }
-
-                .settings-input {
-                    width: 100%;
-                    border: 1px solid #eadde2;
-                    border-radius: 14px;
-                    padding: 13px;
-                    font-size: 15px;
-                    outline: none;
-                    background: #fffafb;
-                }
-
-                .settings-input:focus {
-                    border-color: #ff477e;
-                }
-
-                .save-button {
-                    width: 100%;
-                    border: none;
-                    border-radius: 15px;
-                    padding: 14px;
-                    margin-top: 12px;
-                    background: #ff477e;
-                    color: white;
-                    font-weight: 800;
-                    font-size: 15px;
-                }
-
-                .save-message {
-                    margin-top: 10px;
-                    text-align: center;
-                    font-size: 13px;
-                    color: #ff477e;
-                    font-weight: 700;
-                }
-
-                .couple-code {
-                    margin-top: 14px;
-                    background: #fff0f5;
-                    border-radius: 18px;
-                    padding: 16px;
-                    text-align: center;
-                }
-
-                .couple-code-label {
-                    font-size: 11px;
-                    color: #a1848e;
-                }
-
-                .couple-code-value {
-                    margin-top: 4px;
-                    font-size: 25px;
-                    font-weight: 900;
-                    letter-spacing: 3px;
-                    color: #ff477e;
-                }
-
-                .admin-badge {
-                    display: inline-flex;
-                    padding: 6px 10px;
-                    border-radius: 999px;
-                    background: #fff0f5;
-                    color: #ff477e;
-                    font-size: 11px;
-                    font-weight: 800;
-                    margin-top: 8px;
-                }
-
-                .bottom-nav {
-                    position: fixed;
-                    z-index: 50;
-                    bottom: 12px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    width: min(calc(100% - 24px), 650px);
-                    background: rgba(255,255,255,.95);
-                    backdrop-filter: blur(18px);
-                    border: 1px solid rgba(230, 210, 218, .8);
-                    border-radius: 23px;
-                    padding: 7px;
-                    display: flex;
-                    justify-content: space-around;
-                    box-shadow: 0 12px 35px rgba(50,20,35,.15);
-                }
-
-                .nav-button {
-                    flex: 1;
-                    border: none;
-                    background: transparent;
-                    border-radius: 17px;
-                    padding: 8px 3px;
-                    color: #a58a94;
-                    font-size: 10px;
-                    font-weight: 700;
-                }
-
-                .nav-button.active {
-                    background: #fff0f5;
-                    color: #ff477e;
-                }
-
-                .nav-icon {
-                    display: block;
-                    font-size: 20px;
-                    margin-bottom: 2px;
-                }
-
-                .welcome {
-                    text-align: center;
-                    color: #9b7f89;
-                    font-size: 12px;
-                    margin-top: 18px;
-                    margin-bottom: 10px;
-                }
-
-                @media (min-width: 650px) {
-                    .container {
-                        padding: 0 20px;
-                    }
-
-                    .quick-grid {
-                        grid-template-columns: repeat(4, 1fr);
-                    }
-
-                    .counter-grid {
-                        grid-template-columns: repeat(6, 1fr);
-                    }
-
-                    .counter-bottom {
-                        display: none;
-                    }
-                }
-            `}</style>
-
-            <header className="topbar">
-                <div className="brand">
-                    <div className="brand-heart">❤️</div>
-
-                    <div>
-                        <div className="brand-title">
-                            My Couple
-                        </div>
-
-                        <div className="brand-subtitle">
-                            тільки для нас двох
-                        </div>
+                    <div style={styles.subtitle}>
+                        наше маленьке місце ❤️
                     </div>
                 </div>
 
                 <button
-                    className="profile-button"
-                    onClick={() => navigate("settings")}
+                    style={styles.settingsButton}
+                    onClick={() =>
+                        setPage("settings")
+                    }
                 >
                     ⚙️
                 </button>
             </header>
 
-            <main className="container">
-
-                {activePage === "home" && (
-                    <>
-                        <section className="hero">
-                            <div className="hero-small">
-                                ❤️ Наша історія
-                            </div>
-
-                            <h1 className="hero-title">
-                                Разом — краще
-                            </h1>
-
-                            <p className="hero-text">
-                                Тут зберігаються наші моменти,
-                                мрії, важливі дати та все,
-                                що робить нашу історію особливою.
-                            </p>
-                        </section>
-
-                        <section className="counter-card">
-                            <h2 className="section-title">
-                                Ми разом вже 💕
-                            </h2>
-
-                            <div className="section-subtitle">
-                                І кожна секунда має значення
-                            </div>
-
-                            <div className="counter-grid">
-
-                                <CounterItem
-                                    number={loveTime.years}
-                                    label="років"
-                                />
-
-                                <CounterItem
-                                    number={loveTime.months}
-                                    label="місяців"
-                                />
-
-                                <CounterItem
-                                    number={loveTime.days}
-                                    label="днів"
-                                />
-
-                                <CounterItem
-                                    number={loveTime.hours}
-                                    label="годин"
-                                />
-
-                                <CounterItem
-                                    number={loveTime.minutes}
-                                    label="хвилин"
-                                />
-
-                                <CounterItem
-                                    number={loveTime.seconds}
-                                    label="секунд"
-                                />
-
-                            </div>
-                        </section>
-
-                        <div className="quick-grid">
-
-                            <Feature
-                                icon="💕"
-                                title="Наші моменти"
-                                text="Фото та спогади"
-                                onClick={() => navigate("moments")}
-                            />
-
-                            <Feature
-                                icon="📅"
-                                title="Календар"
-                                text="Важливі дати"
-                                onClick={() => navigate("calendar")}
-                            />
-
-                            <Feature
-                                icon="💌"
-                                title="Для тебе"
-                                text="Наші повідомлення"
-                                onClick={() => navigate("messages")}
-                            />
-
-                            <Feature
-                                icon="🎁"
-                                title="Наші мрії"
-                                text="Плани та бажання"
-                                onClick={() => navigate("dreams")}
-                            />
-
-                        </div>
-
-                        <div className="welcome">
-                            Пара: {couple.invite_code}
-                        </div>
-                    </>
-                )}
-
-                {activePage === "moments" && (
-                    <SimplePage
-                        icon="💕"
-                        title="Наші моменти"
-                        description="Тут ми будемо зберігати наші фотографії, спогади, побачення та особливі моменти."
+            <main style={styles.content}>
+                {page === "home" && (
+                    <HomePage
+                        profile={profile}
+                        couple={couple}
+                        loveTime={loveTime}
+                        setPage={setPage}
                     />
                 )}
 
-                {activePage === "calendar" && (
-                    <SimplePage
-                        icon="📅"
-                        title="Наш календар"
-                        description="Тут будуть наші річниці, дні народження, побачення та інші важливі дати."
-                    />
+                {page === "moments" && (
+                    <MomentsPage />
                 )}
 
-                {activePage === "messages" && (
-                    <SimplePage
-                        icon="💌"
-                        title="Для тебе"
-                        description="Місце для романтичних повідомлень, записок та сюрпризів одне для одного."
-                    />
+                {page === "calendar" && (
+                    <CalendarPage />
                 )}
 
-                {activePage === "dreams" && (
-                    <SimplePage
-                        icon="🎁"
-                        title="Наші мрії"
-                        description="Сюди будемо додавати спільні мрії, бажання, подорожі та плани на майбутнє."
-                    />
+                {page === "dreams" && (
+                    <DreamsPage />
                 )}
 
-                {activePage === "settings" && (
-                    <div className="page">
+                {page === "settings" && (
+                    <SettingsPage
+                        profile={profile}
+                        couple={couple}
+                        isAdmin={isAdmin}
+                        startDate={startDate}
+                        setStartDate={
+                            setStartDate
+                        }
+                        saveStartDate={
+                            saveStartDate
+                        }
+                        saving={saving}
+                        logout={logout}
+                    />
+                )}
+            </main>
 
-                        <div className="page-card">
-                            <div className="page-icon">
-                                ⚙️
-                            </div>
+            <nav style={styles.bottomNav}>
+                <button
+                    style={{
+                        ...styles.navButton,
+                        ...(page === "home"
+                            ? styles.navActive
+                            : {})
+                    }}
+                    onClick={() =>
+                        setPage("home")
+                    }
+                >
+                    <span>❤️</span>
+                    <small>Головна</small>
+                </button>
 
-                            <div className="page-title">
-                                Налаштування
-                            </div>
+                <button
+                    style={{
+                        ...styles.navButton,
+                        ...(page === "moments"
+                            ? styles.navActive
+                            : {})
+                    }}
+                    onClick={() =>
+                        setPage("moments")
+                    }
+                >
+                    <span>📸</span>
+                    <small>Моменти</small>
+                </button>
 
-                            <div className="page-description">
-                                Тут знаходяться налаштування вашої пари.
-                            </div>
+                <button
+                    style={{
+                        ...styles.navButton,
+                        ...(page === "calendar"
+                            ? styles.navActive
+                            : {})
+                    }}
+                    onClick={() =>
+                        setPage("calendar")
+                    }
+                >
+                    <span>📅</span>
+                    <small>Календар</small>
+                </button>
 
-                            {isAdmin && (
-                                <div className="admin-badge">
-                                    🔐 Ви адміністратор
-                                </div>
-                            )}
+                <button
+                    style={{
+                        ...styles.navButton,
+                        ...(page === "dreams"
+                            ? styles.navActive
+                            : {})
+                    }}
+                    onClick={() =>
+                        setPage("dreams")
+                    }
+                >
+                    <span>✨</span>
+                    <small>Мрії</small>
+                </button>
 
-                            <div className="couple-code">
-                                <div className="couple-code-label">
-                                    Код вашої пари
-                                </div>
+                <button
+                    style={{
+                        ...styles.navButton,
+                        ...(page === "settings"
+                            ? styles.navActive
+                            : {})
+                    }}
+                    onClick={() =>
+                        setPage("settings")
+                    }
+                >
+                    <span>⚙️</span>
+                    <small>Налаштування</small>
+                </button>
+            </nav>
+        </div>
+    );
+            }
+function HomePage({
+    profile,
+    couple,
+    loveTime,
+    setPage
+}) {
+    return (
+        <div>
+            <section style={styles.hero}>
+                <div style={styles.heroDecor}>
+                    ❤️
+                </div>
 
-                                <div className="couple-code-value">
-                                    {couple.invite_code}
-                                </div>
-                            </div>
-                        </div>
+                <p style={styles.eyebrow}>
+                    НАША ІСТОРІЯ
+                </p>
 
-                        {isAdmin && (
-                            <div className="settings-section">
-                                <div className="settings-card">
+                <h1 style={styles.heroTitle}>
+                    Разом — це
+                    <br />
+                    найкраще ❤️
+                </h1>
 
-                                    <h2 className="section-title">
-                                        ⏳ Лічильник стосунків
-                                    </h2>
+                <p style={styles.heroText}>
+                    Кожен день поруч —
+                    ще одна маленька
+                    історія нашого кохання.
+                </p>
 
-                                    <div className="section-subtitle">
-                                        Цю дату можете змінювати тільки ви
-                                        як адміністратор.
-                                    </div>
+                <div style={styles.names}>
+                    {profile?.name || "Ми"}
+                    <span> & </span>
+                    Моя любов
+                </div>
+            </section>
 
-                                    <label className="settings-label">
-                                        Дата та час початку стосунків
-                                    </label>
+            <section style={styles.counterCard}>
+                <div style={styles.counterTitle}>
+                    Ми разом вже
+                </div>
 
-                                    <input
-                                        className="settings-input"
-                                        type="datetime-local"
-                                        value={relationshipDate}
-                                        onChange={(e) =>
-                                            setRelationshipDate(
-                                                e.target.value
-                                            )
-                                        }
-                                    />
-                                    <button
-                                        className="save-button"
-                                        onClick={saveRelationshipDate}
-                                        disabled={savingDate}
-                                    >
-                                        {savingDate
-                                            ? "Зберігаємо..."
-                                            : "❤️ Зберегти дату"}
-                                    </button>
+                {loveTime ? (
+                    <div style={styles.counterGrid}>
+                        <CounterItem
+                            value={loveTime.years}
+                            label="років"
+                        />
 
-                                    {saveMessage && (
-                                        <div className="save-message">
-                                            {saveMessage}
-                                        </div>
-                                    )}
+                        <CounterItem
+                            value={loveTime.months}
+                            label="місяців"
+                        />
 
-                                </div>
-                            </div>
-                        )}
+                        <CounterItem
+                            value={loveTime.days}
+                            label="днів"
+                        />
 
-                        {!isAdmin && (
-                            <div className="settings-section">
-                                <div className="settings-card">
-                                    <h2 className="section-title">
-                                        ❤️ Наша пара
-                                    </h2>
+                        <CounterItem
+                            value={loveTime.hours}
+                            label="годин"
+                        />
 
-                                    <p className="page-description">
-                                        Налаштування лічильника доступні
-                                        тільки адміністратору пари.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
+                        <CounterItem
+                            value={loveTime.minutes}
+                            label="хвилин"
+                        />
 
+                        <CounterItem
+                            value={loveTime.seconds}
+                            label="секунд"
+                        />
+                    </div>
+                ) : (
+                    <div style={styles.noCounter}>
+                        ❤️
                     </div>
                 )}
 
-            </main>
+                <div style={styles.counterHeart}>
+                    ❤️
+                </div>
+            </section>
 
-            <nav className="bottom-nav">
+            <section>
+                <div style={styles.sectionHeader}>
+                    <div>
+                        <p style={styles.sectionSmall}>
+                            НАШЕ
+                        </p>
 
-                <NavButton
-                    icon="❤️"
-                    title="Головна"
-                    active={activePage === "home"}
-                    onClick={() => navigate("home")}
-                />
+                        <h2 style={styles.sectionTitle}>
+                            Все наше ❤️
+                        </h2>
+                    </div>
+                </div>
 
-                <NavButton
-                    icon="💕"
-                    title="Моменти"
-                    active={activePage === "moments"}
-                    onClick={() => navigate("moments")}
-                />
+                <div style={styles.cardsGrid}>
+                    <FeatureCard
+                        icon="📸"
+                        title="Наші моменти"
+                        text="Фото та спогади"
+                        onClick={() =>
+                            setPage("moments")
+                        }
+                    />
 
-                <NavButton
-                    icon="📅"
-                    title="Календар"
-                    active={activePage === "calendar"}
-                    onClick={() => navigate("calendar")}
-                />
+                    <FeatureCard
+                        icon="📅"
+                        title="Календар"
+                        text="Важливі дати"
+                        onClick={() =>
+                            setPage("calendar")
+                        }
+                    />
 
-                <NavButton
-                    icon="💌"
-                    title="Для тебе"
-                    active={activePage === "messages"}
-                    onClick={() => navigate("messages")}
-                />
+                    <FeatureCard
+                        icon="✨"
+                        title="Наші мрії"
+                        text="Те, що здійснимо разом"
+                        onClick={() =>
+                            setPage("dreams")
+                        }
+                    />
 
-                <NavButton
-                    icon="⚙️"
-                    title="Налаштування"
-                    active={activePage === "settings"}
-                    onClick={() => navigate("settings")}
-                />
+                    <FeatureCard
+                        icon="💌"
+                        title="Для тебе"
+                        text="Маленькі сюрпризи"
+                        onClick={() =>
+                            alert(
+                                "💌 Скоро тут буде щось особливе!"
+                            )
+                        }
+                    />
+                </div>
+            </section>
 
-            </nav>
+            <section style={styles.quoteCard}>
+                <div style={styles.quoteHeart}>
+                    💕
+                </div>
 
+                <p style={styles.quote}>
+                    "Найкраще місце
+                    <br />
+                    — поруч із тобою."
+                </p>
+
+                <div style={styles.quoteLine}>
+                    ─────────
+                </div>
+
+                <p style={styles.quoteBottom}>
+                    Наша історія тільки починається ❤️
+                </p>
+            </section>
+
+            {couple?.invite_code && (
+                <section style={styles.codeCard}>
+                    <div style={styles.codeIcon}>
+                        🔐
+                    </div>
+
+                    <div>
+                        <div style={styles.codeLabel}>
+                            КОД НАШОЇ ПАРИ
+                        </div>
+
+                        <div style={styles.codeValue}>
+                            {couple.invite_code}
+                        </div>
+                    </div>
+                </section>
+            )}
         </div>
     );
 }
 
-function CounterItem({ number, label }) {
+function CounterItem({
+    value,
+    label
+}) {
     return (
-        <div className="counter-item">
-            <div className="counter-number">
-                {formatNumber(number)}
+        <div style={styles.counterItem}>
+            <div style={styles.counterNumber}>
+                {formatNumber(value)}
             </div>
 
-            <div className="counter-label">
+            <div style={styles.counterLabel}>
                 {label}
             </div>
         </div>
     );
 }
 
-function Feature({
+function FeatureCard({
     icon,
     title,
     text,
@@ -917,395 +704,862 @@ function Feature({
 }) {
     return (
         <button
-            className="feature"
+            style={styles.featureCard}
             onClick={onClick}
         >
-            <div className="feature-icon">
+            <div style={styles.featureIcon}>
                 {icon}
             </div>
 
-            <div className="feature-title">
+            <div style={styles.featureTitle}>
                 {title}
             </div>
 
-            <div className="feature-text">
+            <div style={styles.featureText}>
                 {text}
+            </div>
+
+            <div style={styles.featureArrow}>
+                →
             </div>
         </button>
     );
 }
 
-function NavButton({
-    icon,
-    title,
-    active,
-    onClick
-}) {
+function MomentsPage() {
     return (
-        <button
-            className={`nav-button ${active ? "active" : ""}`}
-            onClick={onClick}
+        <PageWrapper
+            icon="📸"
+            title="Наші моменти"
+            subtitle="Найкращі спогади разом"
         >
-            <span className="nav-icon">
-                {icon}
-            </span>
-
-            {title}
-        </button>
+            <EmptyState
+                icon="📷"
+                title="Тут будуть наші фото"
+                text="Додамо можливість завантажувати
+                та зберігати ваші спільні моменти."
+            />
+        </PageWrapper>
     );
-}function SimplePage({
+}
+
+function CalendarPage() {
+    return (
+        <PageWrapper
+            icon="📅"
+            title="Наш календар"
+            subtitle="Важливі дати нашої історії"
+        >
+            <div style={styles.infoCard}>
+                <div style={styles.bigEmoji}>
+                    ❤️
+                </div>
+
+                <h3 style={styles.infoTitle}>
+                    Наші важливі дати
+                </h3>
+
+                <p style={styles.infoText}>
+                    Тут зможемо додавати
+                    річниці, дні народження,
+                    побачення та інші особливі
+                    моменти.
+                </p>
+            </div>
+        </PageWrapper>
+    );
+}
+
+function DreamsPage() {
+    return (
+        <PageWrapper
+            icon="✨"
+            title="Наші мрії"
+            subtitle="Те, що ми хочемо здійснити"
+        >
+            <EmptyState
+                icon="🌙"
+                title="Мрії попереду"
+                text="Тут буде наш спільний список
+                мрій та цілей."
+            />
+        </PageWrapper>
+    );
+}
+
+function PageWrapper({
     icon,
     title,
-    description
+    subtitle,
+    children
 }) {
     return (
-        <div className="page">
-
-            <div className="page-card">
-
-                <div className="page-icon">
+        <div>
+            <section style={styles.pageHeader}>
+                <div style={styles.pageIcon}>
                     {icon}
                 </div>
 
-                <div className="page-title">
+                <h1 style={styles.pageTitle}>
                     {title}
-                </div>
+                </h1>
 
-                <div className="page-description">
-                    {description}
-                </div>
+                <p style={styles.pageSubtitle}>
+                    {subtitle}
+                </p>
+            </section>
 
-            </div>
-
+            {children}
         </div>
     );
 }
 
-async function startApp() {
-
-    if (!supabase) {
-        document.body.innerHTML = `
-            <div style="
-                padding:30px;
-                font-family:Arial;
-                text-align:center;
-            ">
-                ❌ Supabase не завантажився
+function EmptyState({
+    icon,
+    title,
+    text
+}) {
+    return (
+        <div style={styles.emptyState}>
+            <div style={styles.emptyIcon}>
+                {icon}
             </div>
-        `;
 
-        return;
-    }
+            <h3 style={styles.emptyTitle}>
+                {title}
+            </h3>
 
-    const {
-        data: sessionData,
-        error: sessionError
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-        console.error(sessionError);
-    }
-
-    const session = sessionData?.session;
-
-    if (!session) {
-        document.body.innerHTML = `
-            <div style="
-                min-height:100vh;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                padding:25px;
-                font-family:Arial;
-                text-align:center;
-                background:#fff7fa;
-            ">
-                <div>
-                    <div style="font-size:55px;">❤️</div>
-
-                    <h2>
-                        My Couple
-                    </h2>
-
-                    <p>
-                        Спочатку потрібно увійти
-                        у свій акаунт.
-                    </p>
-
-                    <a
-                        href="/login.html"
-                        style="
-                            display:inline-block;
-                            margin-top:15px;
-                            padding:13px 25px;
-                            background:#ff477e;
-                            color:white;
-                            text-decoration:none;
-                            border-radius:14px;
-                            font-weight:bold;
-                        "
-                    >
-                        Увійти ❤️
-                    </a>
-                </div>
-            </div>
-        `;
-
-        return;
-    }
-
-    const user = session.user;
-    // ---------------------------------------
-    // PROFILE
-    // ---------------------------------------
-
-    let {
-        data: profile,
-        error: profileError
-    } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-
-    if (profileError) {
-        console.error("Profile error:", profileError);
-    }
-
-    // ---------------------------------------
-    // COUPLE MEMBERSHIP
-    // ---------------------------------------
-
-    let {
-        data: membership,
-        error: membershipError
-    } = await supabase
-        .from("couple_members")
-        .select("couple_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-    if (membershipError) {
-        console.error(
-            "Membership error:",
-            membershipError
-        );
-    }
-
-    let coupleId = membership?.couple_id;
-    let inviteCode = null;
-
-    // ---------------------------------------
-    // IF USER DOESN'T HAVE COUPLE
-    // ---------------------------------------
-
-    if (!coupleId) {
-
-        const inviteCodeFromUser =
-            user.user_metadata?.invite_code
-                ?.trim()
-                .toUpperCase();
-
-        if (inviteCodeFromUser) {
-
-            const {
-                data,
-                error
-            } = await supabase.rpc(
-                "join_couple",
-                {
-                    entered_invite_code:
-                        inviteCodeFromUser
-                }
-            );
-
-            if (error) {
-                console.error(
-                    "Join couple error:",
-                    error
-                );
-
-                document.body.innerHTML = `
-                    <div style="
-                        padding:30px;
-                        font-family:Arial;
-                        text-align:center;
-                    ">
-                        <div style="font-size:50px;">
-                            😔
-                        </div>
-
-                        <h2>
-                            Не вдалося приєднатися
-                        </h2>
-
-                        <p>
-                            Код пари неправильний
-                            або пара вже заповнена.
-                        </p>
-                    </div>
-                `;
-
-                return;
-            }
-            coupleId = data.couple_id;
-            inviteCode = data.invite_code;
-
-        } else {
-
-            const {
-                data,
-                error
-            } = await supabase.rpc(
-                "create_couple"
-            );
-
-            if (error) {
-                console.error(
-                    "Create couple error:",
-                    error
-                );
-
-                document.body.innerHTML = `
-                    <div style="
-                        padding:30px;
-                        font-family:Arial;
-                        text-align:center;
-                    ">
-                        ❌ Не вдалося створити пару
-                    </div>
-                `;
-
-                return;
-            }
-
-            coupleId = data.couple_id;
-            inviteCode = data.invite_code;
-        }
-    }
-
-    // ---------------------------------------
-    // COUPLE
-    // ---------------------------------------
-
-    const {
-        data: couple,
-        error: coupleError
-    } = await supabase
-        .from("couples")
-        .select("*")
-        .eq("id", coupleId)
-        .single();
-
-    if (coupleError) {
-        console.error(
-            "Couple error:",
-            coupleError
-        );
-
-        return;
-    }
-
-    if (!inviteCode) {
-        inviteCode = couple.invite_code;
-    }
-
-    // ---------------------------------------
-    // SETTINGS
-    // ---------------------------------------
-
-    let {
-        data: settings,
-        error: settingsError
-    } = await supabase
-        .from("couple_settings")
-        .select("*")
-        .eq("couple_id", coupleId)
-        .maybeSingle();
-
-    if (settingsError) {
-        console.error(
-            "Settings error:",
-            settingsError
-        );
-    }// ---------------------------------------
-    // CREATE SETTINGS IF ADMIN
-    // ---------------------------------------
-
-    if (!settings && profile?.role === "admin") {
-
-        const {
-            data: newSettings,
-            error: createSettingsError
-        } = await supabase
-            .from("couple_settings")
-            .insert({
-                couple_id: coupleId,
-                relationship_started_at:
-                    new Date().toISOString(),
-                updated_at:
-                    new Date().toISOString()
-            })
-            .select()
-            .single();
-
-        if (createSettingsError) {
-            console.error(
-                "Create settings error:",
-                createSettingsError
-            );
-        } else {
-            settings = newSettings;
-        }
-    }
-
-    if (!settings) {
-        settings = {
-            ...DEFAULT_SETTINGS
-        };
-    }
-
-    // ---------------------------------------
-    // REACT STATE
-    // ---------------------------------------
-
-    const rootElement =
-        document.getElementById("root");
-
-    if (!rootElement) {
-        console.error(
-            "❌ #root не знайдено в index.html"
-        );
-
-        return;
-    }
-
-    function RootApp() {
-
-        const [
-            currentSettings,
-            setCurrentSettings
-        ] = useState(settings);
-
-        return (
-            <App
-                user={user}
-                profile={profile}
-                couple={{
-                    ...couple,
-                    invite_code: inviteCode
-                }}
-                settings={currentSettings}
-                onSettingsChange={
-                    setCurrentSettings
-                }
-            />
-        );
-    }
-
-    createRoot(rootElement).render(
-        <RootApp />
+            <p style={styles.emptyText}>
+                {text}
+            </p>
+        </div>
     );
 }
 
-startApp();
+function SettingsPage({
+    profile,
+    couple,
+    isAdmin,
+    startDate,
+    setStartDate,
+    saveStartDate,
+    saving,
+    logout
+}) {
+    return (
+        <div>
+            <section style={styles.pageHeader}>
+                <div style={styles.pageIcon}>
+                    ⚙️
+                </div>
+
+                <h1 style={styles.pageTitle}>
+                    Налаштування
+                </h1>
+
+                <p style={styles.pageSubtitle}>
+                    Налаштування нашої пари
+                </p>
+            </section>
+
+            {isAdmin ? (
+                <section style={styles.settingsCard}>
+                    <div style={styles.settingsTop}>
+                        <div style={styles.settingsIcon}>
+                            👑
+                        </div>
+
+                        <div>
+                            <h2 style={styles.settingsTitle}>
+                                Налаштування адміністратора
+                            </h2>
+
+                            <p style={styles.settingsText}>
+                                Тільки адміністратор може
+                                змінювати ці налаштування.
+                            </p>
+                        </div>
+                    </div>
+
+                    <form
+                        onSubmit={saveStartDate}
+                        style={styles.form}
+                    >
+                        <label style={styles.label}>
+                            ❤️ Початок наших стосунків
+                        </label>
+
+                        <input
+                            type="datetime-local"
+                            value={startDate}
+                            onChange={(event) =>
+                                setStartDate(
+                                    event.target.value
+                                )
+                            }
+                            style={styles.input}
+                            required
+                        />
+
+                        <button
+                            type="submit"
+                            style={styles.primaryButton}
+                            disabled={saving}
+                        >
+                            {saving
+                                ? "Зберігаємо..."
+                                : "Зберегти ❤️"}
+                        </button>
+                    </form>
+                </section>
+            ) : (
+                <section style={styles.infoCard}>
+                    <div style={styles.bigEmoji}>
+                        🔒
+                    </div>
+
+                    <h3 style={styles.infoTitle}>
+                        Налаштування доступні адміну
+                    </h3>
+
+                    <p style={styles.infoText}>
+                        Дату початку стосунків та інші
+                        важливі параметри може змінювати
+                        тільки адміністратор.
+                    </p>
+                </section>
+            )}
+
+            <section style={styles.accountCard}>
+                <div style={styles.accountTitle}>
+                    👤 Мій профіль
+                </div>
+
+                <div style={styles.accountRow}>
+                    <span>Ім'я</span>
+                    <strong>
+                        {profile?.name || "Користувач"}
+                    </strong>
+                </div>
+
+                <div style={styles.accountRow}>
+                    <span>Роль</span>
+                    <strong>
+                        {isAdmin
+                            ? "👑 Адміністратор"
+                            : "❤️ Учасник пари"}
+                    </strong>
+                </div>
+
+                {couple?.invite_code && (
+                    <div style={styles.accountRow}>
+                        <span>Код пари</span>
+                        <strong>
+                            {couple.invite_code}
+                        </strong>
+                    </div>
+                )}
+            </section>
+
+            <button
+                style={styles.logoutButton}
+                onClick={logout}
+            >
+                Вийти з акаунта
+            </button>
+        </div>
+    );
+}const styles = {
+    app: {
+        minHeight: "100vh",
+        background:
+            "linear-gradient(180deg,#fff7fa 0%,#fff 55%,#fff8fb 100%)",
+        color: "#3b2630",
+        fontFamily:
+            "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+        paddingBottom: "90px"
+    },
+
+    loading: {
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        gap: "14px",
+        background: "#fff7fa",
+        color: "#5b3542",
+        fontSize: "17px",
+        padding: "20px",
+        textAlign: "center"
+    },
+
+    loadingHeart: {
+        fontSize: "52px",
+        animation: "pulse 1.2s infinite"
+    },
+
+    header: {
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "18px 18px 14px",
+        background:
+            "rgba(255,255,255,.92)",
+        backdropFilter: "blur(12px)",
+        borderBottom:
+            "1px solid rgba(210,150,170,.15)"
+    },
+
+    logo: {
+        fontSize: "24px",
+        fontWeight: "800",
+        letterSpacing: "-.7px",
+        color: "#5b3040"
+    },
+
+    subtitle: {
+        fontSize: "12px",
+        marginTop: "2px",
+        color: "#a77b88"
+    },
+
+    settingsButton: {
+        width: "44px",
+        height: "44px",
+        border: "none",
+        borderRadius: "50%",
+        background: "#fff0f4",
+        fontSize: "20px",
+        cursor: "pointer",
+        boxShadow:
+            "0 5px 18px rgba(130,70,90,.10)"
+    },
+
+    content: {
+        width: "100%",
+        maxWidth: "760px",
+        margin: "0 auto",
+        padding: "18px 16px 25px",
+        boxSizing: "border-box"
+    },
+
+    hero: {
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: "30px",
+        padding: "30px 24px",
+        marginBottom: "18px",
+        background:
+            "linear-gradient(135deg,#ffe7ee,#fff1f5 55%,#fff)",
+        boxShadow:
+            "0 14px 40px rgba(150,75,100,.10)"
+    },
+
+    heroDecor: {
+        position: "absolute",
+        right: "-5px",
+        top: "-15px",
+        fontSize: "105px",
+        opacity: ".14",
+        transform: "rotate(12deg)"
+    },
+
+    eyebrow: {
+        position: "relative",
+        margin: 0,
+        color: "#b56b82",
+        fontSize: "11px",
+        fontWeight: "800",
+        letterSpacing: "2px"
+    },
+
+    heroTitle: {
+        position: "relative",
+        margin: "10px 0",
+        fontSize: "34px",
+        lineHeight: "1.08",
+        letterSpacing: "-1.2px",
+        color: "#542d3a"
+    },
+
+    heroText: {
+        position: "relative",
+        maxWidth: "470px",
+        margin: "0 0 18px",
+        lineHeight: "1.55",
+        fontSize: "14px",
+        color: "#8d6672"
+    },
+
+    names: {
+        position: "relative",
+        display: "inline-block",
+        padding: "9px 14px",
+        borderRadius: "100px",
+        background: "rgba(255,255,255,.72)",
+        color: "#754253",
+        fontWeight: "700",
+        fontSize: "14px"
+    },
+
+    counterCard: {
+        position: "relative",
+        overflow: "hidden",
+        padding: "22px 14px 20px",
+        marginBottom: "28px",
+        borderRadius: "28px",
+        background: "#fff",
+        border: "1px solid #f4dfe6",
+        boxShadow:
+            "0 12px 35px rgba(140,70,90,.08)",
+        textAlign: "center"
+    },
+
+    counterTitle: {
+        color: "#9b7180",
+        fontSize: "13px",
+        fontWeight: "700",
+        marginBottom: "16px"
+    },
+
+    counterGrid: {
+        display: "grid",
+        gridTemplateColumns:
+            "repeat(3,1fr)",
+        gap: "10px"
+    },
+
+    counterItem: {
+        padding: "9px 3px"
+    },
+
+    counterNumber: {
+        fontSize: "25px",
+        fontWeight: "800",
+        color: "#653545",
+        lineHeight: "1.1"
+    },
+
+    counterLabel: {
+        marginTop: "4px",
+        fontSize: "10px",
+        color: "#ad8995",
+        fontWeight: "600"
+    },
+
+    counterHeart: {
+        position: "absolute",
+        right: "13px",
+        bottom: "9px",
+        fontSize: "18px",
+        opacity: ".6"
+    },
+
+    noCounter: {
+        fontSize: "40px",
+        padding: "20px"
+    },
+
+    sectionHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "end",
+        marginBottom: "14px"
+    },
+
+    sectionSmall: {
+        margin: 0,
+        fontSize: "10px",
+        letterSpacing: "2px",
+        fontWeight: "800",
+        color: "#bb8193"
+    },
+
+    sectionTitle: {
+        margin: "3px 0 0",
+        fontSize: "25px",
+        color: "#56313e",
+        letterSpacing: "-.6px"
+    },
+
+    cardsGrid: {
+        display: "grid",
+        gridTemplateColumns:
+            "repeat(2,minmax(0,1fr))",
+        gap: "12px"
+    },
+
+    featureCard: {
+        position: "relative",
+        textAlign: "left",
+        border: "1px solid #f3e0e6",
+        borderRadius: "23px",
+        background: "#fff",
+        padding: "18px 16px 20px",
+        minHeight: "145px",
+        cursor: "pointer",
+        boxShadow:
+            "0 8px 25px rgba(140,70,90,.06)"
+    },
+
+    featureIcon: {
+        width: "44px",
+        height: "44px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "15px",
+        background: "#fff0f4",
+        fontSize: "23px",
+        marginBottom: "14px"
+    },
+
+    featureTitle: {
+        fontWeight: "800",
+        color: "#5c3542",
+        fontSize: "15px"
+    },
+
+    featureText: {
+        marginTop: "4px",
+        color: "#a17d89",
+        fontSize: "11px",
+        lineHeight: "1.4"
+    },
+
+    featureArrow: {
+        position: "absolute",
+        right: "14px",
+        bottom: "13px",
+        color: "#d18aa0",
+        fontSize: "18px"
+    },
+
+    quoteCard: {
+        marginTop: "18px",
+        padding: "28px 20px",
+        textAlign: "center",
+        borderRadius: "27px",
+        background:
+            "linear-gradient(135deg,#fff0f4,#fff8fa)",
+        border: "1px solid #f5dfe7"
+    },
+
+    quoteHeart: {
+        fontSize: "27px",
+        marginBottom: "7px"
+    },
+
+    quote: {
+        margin: 0,
+        fontSize: "19px",
+        lineHeight: "1.45",
+        fontWeight: "700",
+        color: "#693847"
+    },
+
+    quoteLine: {
+        margin: "12px 0",
+        color: "#e2a7b8",
+        fontSize: "10px"
+    },
+
+    quoteBottom: {
+        margin: 0,
+        fontSize: "11px",
+        color: "#a67c89"
+    },
+
+    codeCard: {
+        display: "flex",
+        alignItems: "center",
+        gap: "13px",
+        marginTop: "14px",
+        padding: "16px",
+        borderRadius: "20px",
+        background: "#fff",
+        border: "1px solid #f2e0e6"
+    },
+
+    codeIcon: {
+        width: "42px",
+        height: "42px",
+        borderRadius: "13px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f8f0ff",
+        fontSize: "20px"
+    },
+
+    codeLabel: {
+        fontSize: "9px",
+        color: "#a48691",
+        fontWeight: "800",
+        letterSpacing: "1.2px"
+    },
+
+    codeValue: {
+        marginTop: "3px",
+        fontSize: "18px",
+        fontWeight: "800",
+        letterSpacing: "2px",
+        color: "#623746"
+    },
+
+    pageHeader: {
+        textAlign: "center",
+        padding: "15px 5px 25px"
+    },
+
+    pageIcon: {
+        fontSize: "39px",
+        marginBottom: "8px"
+    },
+
+    pageTitle: {
+        margin: 0,
+        fontSize: "29px",
+        color: "#58323f",
+        letterSpacing: "-.7px"
+    },
+
+    pageSubtitle: {
+        margin: "6px 0 0",
+        color: "#a27b88",
+        fontSize: "13px"
+    },
+
+    emptyState: {
+        textAlign: "center",
+        padding: "45px 25px",
+        borderRadius: "27px",
+        background: "#fff",
+        border: "1px solid #f2e0e6",
+        boxShadow:
+            "0 10px 30px rgba(140,70,90,.05)"
+    },
+
+    emptyIcon: {
+        fontSize: "52px",
+        marginBottom: "12px"
+    },
+
+    emptyTitle: {
+        margin: 0,
+        fontSize: "19px",
+        color: "#633847"
+    },
+
+    emptyText: {
+        maxWidth: "430px",
+        margin: "8px auto 0",
+        color: "#a07c88",
+        lineHeight: "1.55",
+        fontSize: "13px"
+    },
+
+    infoCard: {
+        padding: "30px 22px",
+        textAlign: "center",
+        borderRadius: "27px",
+        background: "#fff",
+        border: "1px solid #f2e0e6",
+        boxShadow:
+            "0 10px 30px rgba(140,70,90,.05)"
+    },
+
+    bigEmoji: {
+        fontSize: "45px",
+        marginBottom: "10px"
+    },
+
+    infoTitle: {
+        margin: 0,
+        color: "#613645",
+        fontSize: "19px"
+    },
+
+    infoText: {
+        margin: "9px auto 0",
+        maxWidth: "500px",
+        color: "#9d7985",
+        lineHeight: "1.55",
+        fontSize: "13px"
+    },
+
+    settingsCard: {
+        padding: "21px",
+        borderRadius: "25px",
+        background: "#fff",
+        border: "1px solid #f0dce4",
+        boxShadow:
+            "0 10px 30px rgba(140,70,90,.06)"
+    },
+
+    settingsTop: {
+        display: "flex",
+        gap: "13px",
+        alignItems: "flex-start",
+        marginBottom: "22px"
+    },
+
+    settingsIcon: {
+        flexShrink: 0,
+        width: "47px",
+        height: "47px",
+        borderRadius: "15px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#fff0cf",
+        fontSize: "23px"
+    },
+
+    settingsTitle: {
+        margin: 0,
+        color: "#5d3542",
+        fontSize: "17px"
+    },
+
+    settingsText: {
+        margin: "5px 0 0",
+        color: "#a17c89",
+        fontSize: "12px",
+        lineHeight: "1.45"
+    },
+
+    form: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "9px"
+    },
+
+    label: {
+        color: "#704150",
+        fontSize: "13px",
+        fontWeight: "700"
+    },
+
+    input: {
+        width: "100%",
+        boxSizing: "border-box",
+        padding: "13px 14px",
+        borderRadius: "14px",
+        border: "1px solid #ead5dd",
+        background: "#fffafb",
+        color: "#593440",
+        fontSize: "14px",
+        outline: "none"
+    },
+
+    primaryButton: {
+        marginTop: "5px",
+        width: "100%",
+        border: "none",
+        borderRadius: "15px",
+        padding: "14px 18px",
+        background:
+            "linear-gradient(135deg,#d96f8f,#bd5878)",
+        color: "#fff",
+        fontSize: "14px",
+        fontWeight: "800",
+        cursor: "pointer",
+        boxShadow:
+            "0 8px 20px rgba(190,80,115,.22)"
+    },
+
+    accountCard: {
+        marginTop: "14px",
+        padding: "19px",
+        borderRadius: "23px",
+        background: "#fff",
+        border: "1px solid #f1dfe5"
+    },
+
+    accountTitle: {
+        marginBottom: "13px",
+        color: "#613645",
+        fontSize: "16px",
+        fontWeight: "800"
+    },
+
+    accountRow: {
+        display: "flex",
+        justifyContent: "space-between",
+        gap: "12px",
+        padding: "10px 0",
+        borderTop: "1px solid #f7e9ed",
+        fontSize: "13px",
+        color: "#a07d88"
+    },
+
+    logoutButton: {
+        width: "100%",
+        marginTop: "15px",
+        padding: "13px",
+        borderRadius: "15px",
+        border: "1px solid #f0cbd5",
+        background: "#fff",
+        color: "#b74f6d",
+        fontWeight: "700",
+        cursor: "pointer"
+    },
+
+    bottomNav: {
+        position: "fixed",
+        zIndex: 30,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: "70px",
+        display: "flex",
+        justifyContent: "center",
+        gap: "2px",
+        padding:
+            "5px max(5px, env(safe-area-inset-left))",
+        boxSizing: "border-box",
+        background:
+            "rgba(255,255,255,.96)",
+        backdropFilter: "blur(14px)",
+        borderTop:
+            "1px solid rgba(210,150,170,.18)",
+        boxShadow:
+            "0 -5px 25px rgba(100,50,70,.07)"
+    },
+
+    navButton: {
+        flex: 1,
+        maxWidth: "100px",
+        border: "none",
+        background: "transparent",
+        borderRadius: "14px",
+        color: "#a88a94",
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "3px"
+    },
+
+    navActive: {
+        background: "#fff0f4",
+        color: "#b85876"
+    }
+};const rootElement =
+    document.getElementById("root");
+
+if (!rootElement) {
+    console.error(
+        "❌ Не знайдено елемент #root"
+    );
+} else {
+    createRoot(rootElement).render(
+        <App />
+    );
+}
