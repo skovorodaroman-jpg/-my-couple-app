@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -686,4 +687,625 @@ function App({
                             <Feature
                                 icon="💕"
                                 title="Наші моменти"
-                                text="Фо
+                                text="Фото та спогади"
+                                onClick={() => navigate("moments")}
+                            />
+
+                            <Feature
+                                icon="📅"
+                                title="Календар"
+                                text="Важливі дати"
+                                onClick={() => navigate("calendar")}
+                            />
+
+                            <Feature
+                                icon="💌"
+                                title="Для тебе"
+                                text="Наші повідомлення"
+                                onClick={() => navigate("messages")}
+                            />
+
+                            <Feature
+                                icon="🎁"
+                                title="Наші мрії"
+                                text="Плани та бажання"
+                                onClick={() => navigate("dreams")}
+                            />
+
+                        </div>
+
+                        <div className="welcome">
+                            Пара: {couple.invite_code}
+                        </div>
+                    </>
+                )}
+
+                {activePage === "moments" && (
+                    <SimplePage
+                        icon="💕"
+                        title="Наші моменти"
+                        description="Тут ми будемо зберігати наші фотографії, спогади, побачення та особливі моменти."
+                    />
+                )}
+
+                {activePage === "calendar" && (
+                    <SimplePage
+                        icon="📅"
+                        title="Наш календар"
+                        description="Тут будуть наші річниці, дні народження, побачення та інші важливі дати."
+                    />
+                )}
+
+                {activePage === "messages" && (
+                    <SimplePage
+                        icon="💌"
+                        title="Для тебе"
+                        description="Місце для романтичних повідомлень, записок та сюрпризів одне для одного."
+                    />
+                )}
+
+                {activePage === "dreams" && (
+                    <SimplePage
+                        icon="🎁"
+                        title="Наші мрії"
+                        description="Сюди будемо додавати спільні мрії, бажання, подорожі та плани на майбутнє."
+                    />
+                )}
+
+                {activePage === "settings" && (
+                    <div className="page">
+
+                        <div className="page-card">
+                            <div className="page-icon">
+                                ⚙️
+                            </div>
+
+                            <div className="page-title">
+                                Налаштування
+                            </div>
+
+                            <div className="page-description">
+                                Тут знаходяться налаштування вашої пари.
+                            </div>
+
+                            {isAdmin && (
+                                <div className="admin-badge">
+                                    🔐 Ви адміністратор
+                                </div>
+                            )}
+
+                            <div className="couple-code">
+                                <div className="couple-code-label">
+                                    Код вашої пари
+                                </div>
+
+                                <div className="couple-code-value">
+                                    {couple.invite_code}
+                                </div>
+                            </div>
+                        </div>
+
+                        {isAdmin && (
+                            <div className="settings-section">
+                                <div className="settings-card">
+
+                                    <h2 className="section-title">
+                                        ⏳ Лічильник стосунків
+                                    </h2>
+
+                                    <div className="section-subtitle">
+                                        Цю дату можете змінювати тільки ви
+                                        як адміністратор.
+                                    </div>
+
+                                    <label className="settings-label">
+                                        Дата та час початку стосунків
+                                    </label>
+
+                                    <input
+                                        className="settings-input"
+                                        type="datetime-local"
+                                        value={relationshipDate}
+                                        onChange={(e) =>
+                                            setRelationshipDate(
+                                                e.target.value
+                                            )
+                                        }
+                                    />
+                                    <button
+                                        className="save-button"
+                                        onClick={saveRelationshipDate}
+                                        disabled={savingDate}
+                                    >
+                                        {savingDate
+                                            ? "Зберігаємо..."
+                                            : "❤️ Зберегти дату"}
+                                    </button>
+
+                                    {saveMessage && (
+                                        <div className="save-message">
+                                            {saveMessage}
+                                        </div>
+                                    )}
+
+                                </div>
+                            </div>
+                        )}
+
+                        {!isAdmin && (
+                            <div className="settings-section">
+                                <div className="settings-card">
+                                    <h2 className="section-title">
+                                        ❤️ Наша пара
+                                    </h2>
+
+                                    <p className="page-description">
+                                        Налаштування лічильника доступні
+                                        тільки адміністратору пари.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+                )}
+
+            </main>
+
+            <nav className="bottom-nav">
+
+                <NavButton
+                    icon="❤️"
+                    title="Головна"
+                    active={activePage === "home"}
+                    onClick={() => navigate("home")}
+                />
+
+                <NavButton
+                    icon="💕"
+                    title="Моменти"
+                    active={activePage === "moments"}
+                    onClick={() => navigate("moments")}
+                />
+
+                <NavButton
+                    icon="📅"
+                    title="Календар"
+                    active={activePage === "calendar"}
+                    onClick={() => navigate("calendar")}
+                />
+
+                <NavButton
+                    icon="💌"
+                    title="Для тебе"
+                    active={activePage === "messages"}
+                    onClick={() => navigate("messages")}
+                />
+
+                <NavButton
+                    icon="⚙️"
+                    title="Налаштування"
+                    active={activePage === "settings"}
+                    onClick={() => navigate("settings")}
+                />
+
+            </nav>
+
+        </div>
+    );
+}
+
+function CounterItem({ number, label }) {
+    return (
+        <div className="counter-item">
+            <div className="counter-number">
+                {formatNumber(number)}
+            </div>
+
+            <div className="counter-label">
+                {label}
+            </div>
+        </div>
+    );
+}
+
+function Feature({
+    icon,
+    title,
+    text,
+    onClick
+}) {
+    return (
+        <button
+            className="feature"
+            onClick={onClick}
+        >
+            <div className="feature-icon">
+                {icon}
+            </div>
+
+            <div className="feature-title">
+                {title}
+            </div>
+
+            <div className="feature-text">
+                {text}
+            </div>
+        </button>
+    );
+}
+
+function NavButton({
+    icon,
+    title,
+    active,
+    onClick
+}) {
+    return (
+        <button
+            className={`nav-button ${active ? "active" : ""}`}
+            onClick={onClick}
+        >
+            <span className="nav-icon">
+                {icon}
+            </span>
+
+            {title}
+        </button>
+    );
+}function SimplePage({
+    icon,
+    title,
+    description
+}) {
+    return (
+        <div className="page">
+
+            <div className="page-card">
+
+                <div className="page-icon">
+                    {icon}
+                </div>
+
+                <div className="page-title">
+                    {title}
+                </div>
+
+                <div className="page-description">
+                    {description}
+                </div>
+
+            </div>
+
+        </div>
+    );
+}
+
+async function startApp() {
+
+    if (!supabase) {
+        document.body.innerHTML = `
+            <div style="
+                padding:30px;
+                font-family:Arial;
+                text-align:center;
+            ">
+                ❌ Supabase не завантажився
+            </div>
+        `;
+
+        return;
+    }
+
+    const {
+        data: sessionData,
+        error: sessionError
+    } = await supabase.auth.getSession();
+
+    if (sessionError) {
+        console.error(sessionError);
+    }
+
+    const session = sessionData?.session;
+
+    if (!session) {
+        document.body.innerHTML = `
+            <div style="
+                min-height:100vh;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                padding:25px;
+                font-family:Arial;
+                text-align:center;
+                background:#fff7fa;
+            ">
+                <div>
+                    <div style="font-size:55px;">❤️</div>
+
+                    <h2>
+                        My Couple
+                    </h2>
+
+                    <p>
+                        Спочатку потрібно увійти
+                        у свій акаунт.
+                    </p>
+
+                    <a
+                        href="/login.html"
+                        style="
+                            display:inline-block;
+                            margin-top:15px;
+                            padding:13px 25px;
+                            background:#ff477e;
+                            color:white;
+                            text-decoration:none;
+                            border-radius:14px;
+                            font-weight:bold;
+                        "
+                    >
+                        Увійти ❤️
+                    </a>
+                </div>
+            </div>
+        `;
+
+        return;
+    }
+
+    const user = session.user;
+    // ---------------------------------------
+    // PROFILE
+    // ---------------------------------------
+
+    let {
+        data: profile,
+        error: profileError
+    } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (profileError) {
+        console.error("Profile error:", profileError);
+    }
+
+    // ---------------------------------------
+    // COUPLE MEMBERSHIP
+    // ---------------------------------------
+
+    let {
+        data: membership,
+        error: membershipError
+    } = await supabase
+        .from("couple_members")
+        .select("couple_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+    if (membershipError) {
+        console.error(
+            "Membership error:",
+            membershipError
+        );
+    }
+
+    let coupleId = membership?.couple_id;
+    let inviteCode = null;
+
+    // ---------------------------------------
+    // IF USER DOESN'T HAVE COUPLE
+    // ---------------------------------------
+
+    if (!coupleId) {
+
+        const inviteCodeFromUser =
+            user.user_metadata?.invite_code
+                ?.trim()
+                .toUpperCase();
+
+        if (inviteCodeFromUser) {
+
+            const {
+                data,
+                error
+            } = await supabase.rpc(
+                "join_couple",
+                {
+                    entered_invite_code:
+                        inviteCodeFromUser
+                }
+            );
+
+            if (error) {
+                console.error(
+                    "Join couple error:",
+                    error
+                );
+
+                document.body.innerHTML = `
+                    <div style="
+                        padding:30px;
+                        font-family:Arial;
+                        text-align:center;
+                    ">
+                        <div style="font-size:50px;">
+                            😔
+                        </div>
+
+                        <h2>
+                            Не вдалося приєднатися
+                        </h2>
+
+                        <p>
+                            Код пари неправильний
+                            або пара вже заповнена.
+                        </p>
+                    </div>
+                `;
+
+                return;
+            }
+            coupleId = data.couple_id;
+            inviteCode = data.invite_code;
+
+        } else {
+
+            const {
+                data,
+                error
+            } = await supabase.rpc(
+                "create_couple"
+            );
+
+            if (error) {
+                console.error(
+                    "Create couple error:",
+                    error
+                );
+
+                document.body.innerHTML = `
+                    <div style="
+                        padding:30px;
+                        font-family:Arial;
+                        text-align:center;
+                    ">
+                        ❌ Не вдалося створити пару
+                    </div>
+                `;
+
+                return;
+            }
+
+            coupleId = data.couple_id;
+            inviteCode = data.invite_code;
+        }
+    }
+
+    // ---------------------------------------
+    // COUPLE
+    // ---------------------------------------
+
+    const {
+        data: couple,
+        error: coupleError
+    } = await supabase
+        .from("couples")
+        .select("*")
+        .eq("id", coupleId)
+        .single();
+
+    if (coupleError) {
+        console.error(
+            "Couple error:",
+            coupleError
+        );
+
+        return;
+    }
+
+    if (!inviteCode) {
+        inviteCode = couple.invite_code;
+    }
+
+    // ---------------------------------------
+    // SETTINGS
+    // ---------------------------------------
+
+    let {
+        data: settings,
+        error: settingsError
+    } = await supabase
+        .from("couple_settings")
+        .select("*")
+        .eq("couple_id", coupleId)
+        .maybeSingle();
+
+    if (settingsError) {
+        console.error(
+            "Settings error:",
+            settingsError
+        );
+    }// ---------------------------------------
+    // CREATE SETTINGS IF ADMIN
+    // ---------------------------------------
+
+    if (!settings && profile?.role === "admin") {
+
+        const {
+            data: newSettings,
+            error: createSettingsError
+        } = await supabase
+            .from("couple_settings")
+            .insert({
+                couple_id: coupleId,
+                relationship_started_at:
+                    new Date().toISOString(),
+                updated_at:
+                    new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (createSettingsError) {
+            console.error(
+                "Create settings error:",
+                createSettingsError
+            );
+        } else {
+            settings = newSettings;
+        }
+    }
+
+    if (!settings) {
+        settings = {
+            ...DEFAULT_SETTINGS
+        };
+    }
+
+    // ---------------------------------------
+    // REACT STATE
+    // ---------------------------------------
+
+    const rootElement =
+        document.getElementById("root");
+
+    if (!rootElement) {
+        console.error(
+            "❌ #root не знайдено в index.html"
+        );
+
+        return;
+    }
+
+    function RootApp() {
+
+        const [
+            currentSettings,
+            setCurrentSettings
+        ] = useState(settings);
+
+        return (
+            <App
+                user={user}
+                profile={profile}
+                couple={{
+                    ...couple,
+                    invite_code: inviteCode
+                }}
+                settings={currentSettings}
+                onSettingsChange={
+                    setCurrentSettings
+                }
+            />
+        );
+    }
+
+    createRoot(rootElement).render(
+        <RootApp />
+    );
+}
+
+startApp();
