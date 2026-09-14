@@ -78,6 +78,7 @@ function App() {
     const [saving, setSaving] = useState(false);
 
     const [startDate, setStartDate] = useState("");
+    const [partnerName, setPartnerName] = useState("Даша");
 
     useEffect(() => {
         loadApp();
@@ -208,7 +209,8 @@ function App() {
                     .from("couple_settings")
                     .insert({
                         couple_id:
-                            memberData.couple_id
+                            memberData.couple_id,
+                        partner_name: "Даша"
                     })
                     .select()
                     .single();
@@ -224,9 +226,15 @@ function App() {
 
             setSettings(settingsData);
 
+            if (settingsData?.partner_name) {
+                setPartnerName(
+                    settingsData.partner_name
+                );
+            }
+
             if (
                 settingsData
-                ?.relationship_started_at
+                    ?.relationship_started_at
             ) {
                 const date =
                     new Date(
@@ -256,7 +264,7 @@ function App() {
         }
     }
 
-    async function saveStartDate(event) {
+    async function saveSettings(event) {
         event.preventDefault();
 
         if (!couple || !startDate) {
@@ -266,44 +274,48 @@ function App() {
         try {
             setSaving(true);
 
-            const {
-                error
-            } = await supabase
-                .from("couple_settings")
-                .upsert({
-                    couple_id: couple.id,
-                    relationship_started_at:
-                        new Date(
-                            startDate
-                        ).toISOString(),
-                    updated_at:
-                        new Date().toISOString()
-                });
-
-            if (error) {
-                throw error;
-            }
-
-            setSettings({
-                ...settings,
+            const updatedSettings = {
                 couple_id: couple.id,
                 relationship_started_at:
                     new Date(
                         startDate
                     ).toISOString(),
+                partner_name:
+                    partnerName.trim() ||
+                    "Даша",
                 updated_at:
                     new Date().toISOString()
-            });
+            };
+
+            const {
+                error
+            } = await supabase
+                .from("couple_settings")
+                .upsert(
+                    updatedSettings
+                );
+
+            if (error) {
+                throw error;
+            }
+
+            setSettings(
+                updatedSettings
+            );
+
+            setPartnerName(
+                updatedSettings.partner_name
+            );
 
             alert(
-                "❤️ Дату початку стосунків змінено!"
+                "❤️ Налаштування збережено!"
             );
 
         } catch (error) {
             console.error(error);
 
             alert(
-                "❌ Не вдалося зберегти дату."
+                "❌ Не вдалося зберегти налаштування."
             );
         } finally {
             setSaving(false);
@@ -386,6 +398,7 @@ function App() {
                     <HomePage
                         profile={profile}
                         couple={couple}
+                        partnerName={partnerName}
                         loveTime={loveTime}
                         setPage={setPage}
                     />
@@ -412,8 +425,12 @@ function App() {
                         setStartDate={
                             setStartDate
                         }
-                        saveStartDate={
-                            saveStartDate
+                        partnerName={partnerName}
+                        setPartnerName={
+                            setPartnerName
+                        }
+                        saveSettings={
+                            saveSettings
                         }
                         saving={saving}
                         logout={logout}
@@ -499,13 +516,17 @@ function App() {
             </nav>
         </div>
     );
-            }
+        }
 function HomePage({
     profile,
     couple,
+    partnerName,
     loveTime,
     setPage
 }) {
+    const userName =
+        profile?.name || "Рома";
+
     return (
         <div>
             <section style={styles.hero}>
@@ -530,9 +551,9 @@ function HomePage({
                 </p>
 
                 <div style={styles.names}>
-                    {profile?.name || "Ми"}
-                    <span> & </span>
-                    Моя любов
+                    {userName}
+                    <span> ❤️ </span>
+                    {partnerName || "Даша"}
                 </div>
             </section>
 
@@ -736,8 +757,7 @@ function MomentsPage() {
             <EmptyState
                 icon="📷"
                 title="Тут будуть наші фото"
-                text="Додамо можливість завантажувати
-                та зберігати ваші спільні моменти."
+                text="Додамо можливість завантажувати та зберігати ваші спільні моменти."
             />
         </PageWrapper>
     );
@@ -780,8 +800,7 @@ function DreamsPage() {
             <EmptyState
                 icon="🌙"
                 title="Мрії попереду"
-                text="Тут буде наш спільний список
-                мрій та цілей."
+                text="Тут буде наш спільний список мрій та цілей."
             />
         </PageWrapper>
     );
@@ -842,7 +861,9 @@ function SettingsPage({
     isAdmin,
     startDate,
     setStartDate,
-    saveStartDate,
+    partnerName,
+    setPartnerName,
+    saveSettings,
     saving,
     logout
 }) {
@@ -875,14 +896,13 @@ function SettingsPage({
                             </h2>
 
                             <p style={styles.settingsText}>
-                                Тільки адміністратор може
-                                змінювати ці налаштування.
+                                Тільки адміністратор може змінювати ці налаштування.
                             </p>
                         </div>
                     </div>
 
                     <form
-                        onSubmit={saveStartDate}
+                        onSubmit={saveSettings}
                         style={styles.form}
                     >
                         <label style={styles.label}>
@@ -898,6 +918,24 @@ function SettingsPage({
                                 )
                             }
                             style={styles.input}
+                            required
+                        />
+
+                        <label style={styles.label}>
+                            👩 Ім'я коханої
+                        </label>
+
+                        <input
+                            type="text"
+                            value={partnerName}
+                            onChange={(event) =>
+                                setPartnerName(
+                                    event.target.value
+                                )
+                            }
+                            placeholder="Наприклад: Даша"
+                            style={styles.input}
+                            maxLength={40}
                             required
                         />
 
@@ -923,9 +961,7 @@ function SettingsPage({
                     </h3>
 
                     <p style={styles.infoText}>
-                        Дату початку стосунків та інші
-                        важливі параметри може змінювати
-                        тільки адміністратор.
+                        Дату початку стосунків та інші важливі параметри може змінювати тільки адміністратор.
                     </p>
                 </section>
             )}
@@ -951,6 +987,13 @@ function SettingsPage({
                     </strong>
                 </div>
 
+                <div style={styles.accountRow}>
+                    <span>Кохана</span>
+                    <strong>
+                        {partnerName || "Даша"}
+                    </strong>
+                </div>
+
                 {couple?.invite_code && (
                     <div style={styles.accountRow}>
                         <span>Код пари</span>
@@ -969,7 +1012,8 @@ function SettingsPage({
             </button>
         </div>
     );
-}const styles = {
+                            }
+const styles = {
     app: {
         minHeight: "100vh",
         background:
@@ -995,8 +1039,7 @@ function SettingsPage({
     },
 
     loadingHeart: {
-        fontSize: "52px",
-        animation: "pulse 1.2s infinite"
+        fontSize: "52px"
     },
 
     header: {
@@ -1520,8 +1563,7 @@ function SettingsPage({
         display: "flex",
         justifyContent: "center",
         gap: "2px",
-        padding:
-            "5px max(5px, env(safe-area-inset-left))",
+        padding: "5px",
         boxSizing: "border-box",
         background:
             "rgba(255,255,255,.96)",
@@ -1551,13 +1593,12 @@ function SettingsPage({
         background: "#fff0f4",
         color: "#b85876"
     }
-};const rootElement =
+};
+const rootElement =
     document.getElementById("root");
 
 if (!rootElement) {
-    console.error(
-        "❌ Не знайдено елемент #root"
-    );
+    console.error("❌ Не знайдено елемент #root");
 } else {
     createRoot(rootElement).render(
         <App />
