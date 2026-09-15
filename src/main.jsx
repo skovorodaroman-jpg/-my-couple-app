@@ -1117,6 +1117,21 @@ monthCalendarHeader:{
 },
 
   monthCalendarTitleWrap:{
+  display:"flex",
+  flexDirection:"column",
+  alignItems:"center",
+  gap:"5px"
+},
+
+todayCalendarButton:{
+  border:"none",
+  background:"transparent",
+  color:"#bd5878",
+  fontSize:"10px",
+  fontWeight:"800",
+  cursor:"pointer",
+  padding:"2px 6px"
+},
   
   
 monthCalendarTitle:{
