@@ -210,7 +210,7 @@ async function deleteMoment(moment) {
   return <div style={styles.app}>
     <header style={styles.header}><div><div style={styles.logo}>My Couple</div><div style={styles.subtitle}>наше маленьке місце ❤️</div></div><button style={styles.settingsButton} onClick={() => setPage("settings")}>⚙️</button></header>
     <main style={styles.content}>
-      {page === "home" && <HomePage profile={profile} couple={couple} partnerName={partnerName} loveTime={loveTime} setPage={setPage} />}
+      {page === "home" && <HomePage profile={profile} couple={couple} partnerName={partnerName} loveTime={loveTime} setPage={setPage} moments={moments} />}
       {page === "moments" && <MomentsPage moments={moments} setPage={setPage} addMoment={addMoment} momentLoading={momentLoading} deleteMoment={deleteMoment} />}
       {page === "calendar" && (
   <CalendarPage
@@ -226,7 +226,7 @@ async function deleteMoment(moment) {
   </div>;
 }
 
-function HomePage({ profile, couple, partnerName, loveTime, setPage }) {
+function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) {
   const userName = profile?.name || "Рома";
   return <div>
     <section style={styles.hero}><div style={styles.heroDecor}>❤️</div><p style={styles.eyebrow}>НАША ІСТОРІЯ</p><h1 style={styles.heroTitle}>Разом — це<br />найкраще ❤️</h1><p style={styles.heroText}>Кожен день поруч —<br />ще одна маленька<br />історія нашого кохання.</p><div style={styles.names}>{userName}<span> ❤️ </span>{partnerName || "Даша"}</div></section>
@@ -260,6 +260,173 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage }) {
 </div>
       {m.description&&<p style={styles.momentDescription}>{m.description}</p>}</div></article>)}</div>}
   </div>;
+}
+
+
+function MomentsPage({ moments, setPage, addMoment, momentLoading, deleteMoment }) {
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [momentDate, setMomentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [file, setFile] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    const ok = await addMoment({
+      title,
+      description,
+      momentDate,
+      file
+    });
+
+    if (ok) {
+      setTitle("");
+      setDescription("");
+      setMomentDate(new Date().toISOString().split("T")[0]);
+      setFile(null);
+      setShowForm(false);
+    }
+  }
+
+  return (
+    <div>
+      <section style={styles.pageHeader}>
+        <button
+          style={styles.backButton}
+          onClick={() => setPage("home")}
+        >
+          ←
+        </button>
+
+        <div>
+          <p style={styles.sectionSmall}>НАША ІСТОРІЯ</p>
+          <h1 style={styles.pageTitle}>Наші моменти 📸</h1>
+        </div>
+      </section>
+
+      <section style={styles.momentsTopCard}>
+        <div style={styles.momentsTopIcon}>📸</div>
+        <div>
+          <div style={styles.momentsTopTitle}>Наші спогади</div>
+          <div style={styles.momentsTopText}>
+            Зберігайте найтепліші моменти нашої історії ❤️
+          </div>
+        </div>
+      </section>
+
+      <button
+        type="button"
+        style={styles.addMomentButton}
+        onClick={() => setShowForm(!showForm)}
+      >
+        {showForm ? "✕ Скасувати" : "＋ Додати момент ❤️"}
+      </button>
+
+      {showForm && (
+        <form style={styles.momentForm} onSubmit={handleSubmit}>
+          <div style={styles.formTitle}>Новий момент 💕</div>
+
+          <label style={styles.formLabel}>❤️ Назва моменту</label>
+          <input
+            type="text"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Наприклад: Наша перша подорож"
+            style={styles.formInput}
+            maxLength={100}
+            required
+          />
+
+          <label style={styles.formLabel}>📅 Дата</label>
+          <input
+            type="date"
+            value={momentDate}
+            onChange={e => setMomentDate(e.target.value)}
+            style={styles.formInput}
+          />
+
+          <label style={styles.formLabel}>📝 Опис</label>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Напишіть, що особливого було в цей день..."
+            style={styles.formTextarea}
+            rows={4}
+          />
+
+          <label style={styles.formLabel}>📷 Фото</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={e => setFile(e.target.files?.[0] || null)}
+            style={styles.fileInput}
+          />
+
+          {file && (
+            <div style={styles.selectedFile}>
+              📎 {file.name}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            style={styles.saveMomentButton}
+            disabled={momentLoading}
+          >
+            {momentLoading ? "Зберігаю... ❤️" : "💾 Зберегти момент"}
+          </button>
+        </form>
+      )}
+
+      {moments.length === 0 ? (
+        <div style={styles.emptyMoments}>
+          <div style={styles.emptyMomentsIcon}>📸</div>
+          <div style={styles.emptyMomentsTitle}>Тут поки порожньо</div>
+          <div style={styles.emptyMomentsText}>
+            Додайте ваш перший спільний спогад ❤️
+          </div>
+        </div>
+      ) : (
+        <div style={styles.momentsList}>
+          {moments.map(m => (
+            <article key={m.id} style={styles.momentCard}>
+              {m.image_url && (
+                <img
+                  src={m.image_url}
+                  alt={m.title}
+                  style={styles.momentImage}
+                />
+              )}
+
+              <div style={styles.momentContent}>
+                <div style={styles.momentDate}>📅 {m.moment_date}</div>
+
+                <h3 style={styles.momentTitle}>{m.title}</h3>
+
+                {m.description && (
+                  <p style={styles.momentDescription}>
+                    {m.description}
+                  </p>
+                )}
+
+                <div style={styles.momentActions}>
+                  <button
+                    type="button"
+                    onClick={() => deleteMoment(m)}
+                    style={styles.deleteMomentButton}
+                    disabled={momentLoading}
+                  >
+                    🗑️ Видалити
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function CounterItem({value,label}){return <div style={styles.counterItem}><div style={styles.counterNumber}>{pad(value)}</div><div style={styles.counterLabel}>{label}</div></div>}
@@ -1090,6 +1257,9 @@ emptyState:{textAlign:"center",padding:"45px 25px",borderRadius:"27px",backgroun
 settingsCard:{padding:"21px",borderRadius:"25px",background:"#fff",border:"1px solid #f0dce4",boxShadow:"0 10px 30px rgba(140,70,90,.06)"},settingsTop:{display:"flex",gap:"13px",alignItems:"flex-start",marginBottom:"22px"},settingsIcon:{flexShrink:0,width:"47px",height:"47px",borderRadius:"15px",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff0cf",fontSize:"23px"},settingsTitle:{margin:0,color:"#5d3542",fontSize:"17px"},settingsText:{margin:"5px 0 0",color:"#a17c89",fontSize:"12px",lineHeight:"1.45"},form:{display:"flex",flexDirection:"column",gap:"9px"},label:{color:"#704150",fontSize:"13px",fontWeight:"700"},input:{width:"100%",boxSizing:"border-box",padding:"13px 14px",borderRadius:"14px",border:"1px solid #ead5dd",background:"#fffafb",color:"#593440",fontSize:"14px",outline:"none"},primaryButton:{marginTop:"5px",width:"100%",border:"none",borderRadius:"15px",padding:"14px 18px",background:"linear-gradient(135deg,#d96f8f,#bd5878)",color:"#fff",fontSize:"14px",fontWeight:"800",cursor:"pointer",boxShadow:"0 8px 20px rgba(190,80,115,.22)"},accountCard:{marginTop:"14px",padding:"19px",borderRadius:"23px",background:"#fff",border:"1px solid #f1dfe5"},accountTitle:{marginBottom:"13px",color:"#613645",fontSize:"16px",fontWeight:"800"},accountRow:{display:"flex",justifyContent:"space-between",gap:"12px",padding:"10px 0",borderTop:"1px solid #f7e9ed",fontSize:"13px",color:"#a07d88"},logoutButton:{width:"100%",marginTop:"15px",padding:"13px",borderRadius:"15px",border:"1px solid #f0cbd5",background:"#fff",color:"#b74f6d",fontWeight:"700",cursor:"pointer"},
 bottomNav:{position:"fixed",zIndex:30,bottom:0,left:0,right:0,height:"70px",display:"flex",justifyContent:"center",gap:"2px",padding:"5px",boxSizing:"border-box",background:"rgba(255,255,255,.96)",backdropFilter:"blur(14px)",borderTop:"1px solid rgba(210,150,170,.18)",boxShadow:"0 -5px 25px rgba(100,50,70,.07)"},navButton:{flex:1,maxWidth:"100px",border:"none",background:"transparent",borderRadius:"14px",color:"#a88a94",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"3px"},navActive:{background:"#fff0f4",color:"#b85876"},
 momentsTopCard:{display:"flex",gap:"16px",alignItems:"center",padding:"20px",marginBottom:"18px",background:"#fff5f7",borderRadius:"22px"},momentsTopIcon:{width:"52px",height:"52px",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff",borderRadius:"50%",fontSize:"25px",flexShrink:0},momentsTopTitle:{fontSize:"18px",fontWeight:"700",color:"#3b2630",marginBottom:"6px"},momentsTopText:{fontSize:"14px",lineHeight:"1.5",color:"#806c73"},addMomentButton:{width:"100%",padding:"16px",border:"none",borderRadius:"18px",background:"#e96b83",color:"#fff",fontSize:"16px",fontWeight:"700",cursor:"pointer",marginBottom:"18px"},momentForm:{background:"#fff",padding:"20px",borderRadius:"22px",marginBottom:"22px",boxShadow:"0 5px 20px rgba(0,0,0,0.06)"},formTitle:{fontSize:"21px",fontWeight:"700",color:"#3b2630",marginBottom:"20px"},formLabel:{display:"block",fontSize:"14px",fontWeight:"600",color:"#5c464e",marginTop:"14px",marginBottom:"7px"},formInput:{width:"100%",boxSizing:"border-box",padding:"13px 14px",border:"1px solid #eadde1",borderRadius:"13px",background:"#fff",fontSize:"15px"},formTextarea:{width:"100%",boxSizing:"border-box",padding:"13px 14px",border:"1px solid #eadde1",borderRadius:"13px",background:"#fff",fontSize:"15px",resize:"vertical",fontFamily:"inherit"},fileInput:{width:"100%",boxSizing:"border-box",padding:"12px",border:"1px dashed #e2cbd2",borderRadius:"13px",background:"#fff8fa"},selectedFile:{marginTop:"8px",padding:"10px",borderRadius:"10px",background:"#f8f1f3",fontSize:"13px",color:"#705a62"},saveMomentButton:{width:"100%",padding:"15px",marginTop:"20px",border:"none",borderRadius:"15px",background:"#3b2630",color:"#fff",fontSize:"15px",fontWeight:"700",cursor:"pointer"},emptyMoments:{textAlign:"center",padding:"55px 20px",background:"#fff",borderRadius:"22px",marginTop:"10px"},emptyMomentsIcon:{fontSize:"48px",marginBottom:"12px"},emptyMomentsTitle:{fontSize:"19px",fontWeight:"700",color:"#3b2630",marginBottom:"7px"},emptyMomentsText:{fontSize:"14px",color:"#806c73"},momentsList:{display:"flex",flexDirection:"column",gap:"18px"},momentCard:{background:"#fff",borderRadius:"22px",overflow:"hidden",boxShadow:"0 5px 20px rgba(0,0,0,0.06)"},momentImage:{width:"100%",display:"block",maxHeight:"420px",objectFit:"cover"},momentContent:{padding:"18px"},momentDate:{fontSize:"12px",color:"#a08089",marginBottom:"7px"},momentTitle:{margin:"0 0 8px",fontSize:"20px",color:"#3b2630"},momentDescription:{margin:0,fontSize:"14px",lineHeight:"1.6",color:"#806c73"},
+momentActions:{display:"flex",justifyContent:"flex-end",marginTop:"14px"},
+deleteMomentButton:{border:"none",borderRadius:"12px",padding:"10px 13px",background:"#fff0f4",color:"#bd5878",fontSize:"13px",fontWeight:"700",cursor:"pointer"},
+
 
   selectedDayCard:{
   padding:"16px",
