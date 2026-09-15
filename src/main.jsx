@@ -459,7 +459,14 @@ function getDaysUntil(date, eventType) {
   }))
     .filter(event => event.daysUntil >= 0)
     .sort((a, b) => a.daysUntil - b.daysUntil);
+const todayEvent = upcomingEvents.find(
+  event => event.daysUntil === 0
+);
 
+const tomorrowEvent = upcomingEvents.find(
+  event => event.daysUntil === 1
+);
+  
   const nextEvent = upcomingEvents[0];
 
   return (
