@@ -691,8 +691,8 @@ const tomorrowEvent = upcomingEvents.find(
               </button>
               <button
   type="button"
-  onClick={() => deleteEvent(event)}
-  style={styles.deleteEventButton}
+onClick={() => deleteEvent(event)}
+style={styles.deleteEventButton}
 >
   🗑️
 </button>
