@@ -587,9 +587,7 @@ function getDaysUntil(date, eventType) {
       )}
     </div>
   );
-}
-async function updateEvent(e) {
-  e.preventDefault();
+    e.preventDefault();
 
   if (!editingEvent) return;
 
