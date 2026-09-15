@@ -502,7 +502,7 @@ function getDaysUntil(date, eventType) {
               ? "Зберігаю... ❤️"
             : editingEvent
   ? "💾 Зберегти зміни"
-  : "💾 Зберегти дату"
+  : "💾 Зберегти дату"}
           </button>
         </form>
       )}
