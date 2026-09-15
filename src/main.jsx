@@ -331,18 +331,7 @@ function getDaysUntil(date, eventType) {
     (target - today) /
     (1000 * 60 * 60 * 24)
   );
-        }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const target = new Date(date + "T00:00:00");
-    target.setHours(0, 0, 0, 0);
-
-    const difference =
-      Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-
-    return difference;
-  }
+}
 
   function getEventIcon(type) {
     const icons = {
@@ -568,7 +557,10 @@ function getDaysUntil(date, eventType) {
   event.event_type
 ) === 0
                     ? "❤️"
-                    : `${getDaysUntil(event.event_date)} дн.`}
+                    : ``${getDaysUntil(
+  event.event_date,
+  event.event_type
+)} дн.`}
                 </div>
               )}
             </article>
