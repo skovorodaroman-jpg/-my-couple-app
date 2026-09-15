@@ -284,7 +284,7 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) 
       )}
     </div>
   );
-    
+} 
 
 function MomentsPage({ moments = [], setPage, addMoment, momentLoading, deleteMoment }) {
   const [showForm, setShowForm] = useState(false);
