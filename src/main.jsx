@@ -197,7 +197,7 @@ function CalendarPage({ couple, session, setPage }) {
   const [eventDate, setEventDate] = useState("");
   const [description, setDescription] = useState("");
   const [eventType, setEventType] = useState("other");
-
+const [editingEvent, setEditingEvent] = useState(null);
   useEffect(() => {
     if (couple?.id) loadEvents();
   }, [couple?.id]);
@@ -224,6 +224,14 @@ function CalendarPage({ couple, session, setPage }) {
     }
   }
 
+  function startEditEvent(event) {
+  setEditingEvent(event);
+  setTitle(event.title || "");
+  setEventDate(event.event_date || "");
+  setDescription(event.description || "");
+  setEventType(event.event_type || "other");
+  setShowForm(true);
+  }
   async function addEvent(e) {
     e.preventDefault();
 
@@ -426,11 +434,11 @@ function getDaysUntil(date, eventType) {
       {showForm && (
         <form
           style={styles.momentForm}
-          onSubmit={addEvent}
+          onSubmit={editingEvent ? updateEvent : addEvent}
         >
           <div style={styles.formTitle}>
-            Нова важлива дата 💕
-          </div>
+  {editingEvent ? "Редагувати дату ✏️" : "Нова важлива дата 💕"}
+</div>
 
           <label style={styles.formLabel}>
             📅 Назва події
@@ -562,6 +570,13 @@ function getDaysUntil(date, eventType) {
   event.event_type
 )} дн.`}
                 </div>
+              <button
+  type="button"
+  onClick={() => startEditEvent(event)}
+  style={styles.editEventButton}
+>
+  ✏️
+</button>
               )}
             </article>
           ))}
@@ -569,6 +584,66 @@ function getDaysUntil(date, eventType) {
       )}
     </div>
   );
+}
+async function updateEvent(e) {
+  e.preventDefault();
+
+  if (!editingEvent) return;
+
+  if (!title.trim()) {
+    alert("Введи назву події ❤️");
+    return;
+  }
+
+  if (!eventDate) {
+    alert("Обери дату 📅");
+    return;
+  }
+
+  try {
+    setSaving(true);
+
+    const { data, error } = await supabase
+      .from("calendar_events")
+      .update({
+        title: title.trim(),
+        event_date: eventDate,
+        description: description.trim() || null,
+        event_type: eventType
+      })
+      .eq("id", editingEvent.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Помилка редагування події:", error);
+      alert("Не вдалося змінити подію ❤️");
+      return;
+    }
+
+    setEvents(prev =>
+      prev
+        .map(event =>
+          event.id === data.id ? data : event
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.event_date) -
+            new Date(b.event_date)
+        )
+    );
+
+    setEditingEvent(null);
+    setTitle("");
+    setEventDate("");
+    setDescription("");
+    setEventType("other");
+    setShowForm(false);
+
+    alert("❤️ Подію змінено!");
+  } finally {
+    setSaving(false);
+  }
 }
 function DreamsPage(){return <PageWrapper icon="✨" title="Наші мрії" subtitle="Те, що ми хочемо здійснити"><EmptyState icon="🌙" title="Мрії попереду" text="Тут буде наш спільний список мрій та цілей."/></PageWrapper>}
 function PagеWrapper({icon,title,subtitle,children}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>{icon}</div><h1 style={styles.pageTitle}>{title}</h1><p style={styles.pageSubtitle}>{subtitle}</p></section>{children}</div>}
@@ -654,7 +729,18 @@ calendarEventCard:{
   border:"1px solid #f2e0e6",
   boxShadow:"0 6px 20px rgba(140,70,90,.05)"
 },
-
+editEventButton:{
+  flexShrink:0,
+  width:"38px",
+  height:"38px",
+  border:"none",
+  borderRadius:"12px",
+  background:"#fff0f4",
+  color:"#bd5878",
+  fontSize:"17px",
+  cursor:"pointer"
+},
+      
 calendarEventIcon:{
   width:"46px",
   height:"46px",
