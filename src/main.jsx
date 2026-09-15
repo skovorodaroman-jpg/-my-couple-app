@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 const supabase = window.supabaseClient;
 
+
 function getLoveTime(startDate) {
   const start = new Date(startDate);
   const now = new Date();
