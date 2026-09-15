@@ -577,7 +577,7 @@ function getDaysUntil(date, eventType) {
 >
   ✏️
 </button>
-              )}
+              
             </article>
           ))}
         </div>
