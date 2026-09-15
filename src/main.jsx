@@ -664,6 +664,13 @@ function getDaysUntil(date, eventType) {
               >
                 ✏️
               </button>
+              <button
+  type="button"
+  onClick={() => deleteEvent(event)}
+  style={styles.deleteEventButton}
+>
+  🗑️
+</button>
               
             </article>
           ))}
