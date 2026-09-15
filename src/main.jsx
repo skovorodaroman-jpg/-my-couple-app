@@ -98,7 +98,7 @@ function App() {
     } catch (error) { console.error("❌ Помилка:", error); }
   }
 
-  async function addMoment({ title, description, momentDate, file }) {
+async function addMoment({ title, description, momentDate, file }) {
     if (!couple?.id || !session?.user?.id) { alert("Не знайдено вашу пару ❤️"); return false; }
     if (!title.trim()) { alert("Введи назву моменту ❤️"); return false; }
     try {
@@ -121,7 +121,163 @@ function App() {
     } catch (error) { console.error(error); alert("Сталася помилка. Спробуй ще раз."); return false; }
     finally { setMomentLoading(false); }
   }
+async function deleteMoment(moment) {
+  if (!moment?.id) return;
 
+  const confirmed = window.confirm(
+    `Видалити момент "${moment.title}"? ❤️`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    setMomentLoading(true);
+
+    // Видаляємо фото зі Storage, якщо воно є
+    if (moment.image_url) {
+      try {
+        const url = new URL(moment.image_url);
+        const marker = "/storage/v1/object/sign/moments/";
+
+        if (url.pathname.includes(marker)) {
+          const filePath = decodeURIComponent(
+            url.pathname.split(marker)[1].split("?")[0]
+          );
+
+          if (filePath) {
+            const { error: storageError } =
+              await supabase.storage
+                .from("moments")
+                .remove([filePath]);
+
+            if (storageError) {
+              console.error("Помилка видалення фото:", storageError);
+            }
+          }
+        }
+      } catch (storageError) {
+        console.error("Не вдалося визначити шлях фото:", storageError);
+      }
+    }
+
+    // Видаляємо сам момент з бази
+    const { error } = await supabase
+      .from("moments")
+      .delete()
+      .eq("id", moment.id);
+
+    if (error) {
+      console.error(error);
+      alert("Не вдалося видалити момент ❤️");
+      return;
+    }
+
+    setMoments(prev =>
+      prev.filter(item => item.id !== moment.id)
+    );
+
+    alert("Момент видалено ❤️");
+  } catch (error) {
+    console.error(error);
+    alert("Сталася помилка. Спробуй ще раз.");
+  } finally {
+    setMomentLoading(false);
+  }
+               }
+  async function updateMoment(e) {
+  e.preventDefault();
+
+  if (!editingMoment?.id) return;
+
+  if (!title.trim()) {
+    alert("Введи назву моменту ❤️");
+    return;
+  }
+
+  try {
+    setMomentLoading(true);
+
+    let imageUrl = editingMoment.image_url || null;
+
+    // Якщо вибрали нове фото
+    if (file) {
+      const extension = file.name.split(".").pop();
+      const filePath = `${couple.id}/${crypto.randomUUID()}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("moments")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error(uploadError);
+        alert("Не вдалося завантажити нове фото 📸");
+        return;
+      }
+
+      const { data: signedData, error: signedError } =
+        await supabase.storage
+          .from("moments")
+          .createSignedUrl(
+            filePath,
+            60 * 60 * 24 * 365
+          );
+
+      if (signedError) {
+        console.error(signedError);
+        alert("Фото завантажено, але не вдалося отримати адресу.");
+        return;
+      }
+
+      imageUrl = signedData?.signedUrl || null;
+    }
+
+    const { data, error } = await supabase
+      .from("moments")
+      .update({
+        title: title.trim(),
+        description: description?.trim() || null,
+        moment_date:
+          momentDate ||
+          new Date().toISOString().split("T")[0],
+        image_url: imageUrl
+      })
+      .eq("id", editingMoment.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      alert("Не вдалося оновити момент ❤️");
+      return;
+    }
+
+    setMoments(prev =>
+      prev.map(item =>
+        item.id === editingMoment.id ? data : item
+      )
+    );
+
+    setEditingMoment(null);
+    setTitle("");
+    setDescription("");
+    setMomentDate(
+      new Date().toISOString().split("T")[0]
+    );
+    setFile(null);
+    setShowForm(false);
+
+    alert("Момент оновлено ❤️");
+  } catch (error) {
+    console.error(error);
+    alert("Сталася помилка. Спробуй ще раз.");
+  } finally {
+    setMomentLoading(false);
+  }
+  }
+  
   async function saveSettings(event) {
     event.preventDefault();
     if (!couple || !startDate) return;
@@ -174,14 +330,40 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage }) {
 }
 
 function MomentsPage({ moments, setPage, addMoment, momentLoading }) {
-  const [showForm,setShowForm]=useState(false); const [title,setTitle]=useState(""); const [description,setDescription]=useState(""); const [momentDate,setMomentDate]=useState(new Date().toISOString().split("T")[0]); const [file,setFile]=useState(null);
+  const [showForm,setShowForm]=useState(false); const [editingMoment, setEditingMoment] = useState(null); const [title,setTitle]=useState(""); const [description,setDescription]=useState(""); const [momentDate,setMomentDate]=useState(new Date().toISOString().split("T")[0]); const [file,setFile]=useState(null);
   async function handleSubmit(e){e.preventDefault();const ok=await addMoment({title,description,momentDate,file});if(ok){setTitle("");setDescription("");setMomentDate(new Date().toISOString().split("T")[0]);setFile(null);setShowForm(false);}}
   return <div>
     <section style={styles.pageHeader}><button style={styles.backButton} onClick={()=>setPage("home")}>←</button><div><p style={styles.sectionSmall}>НАША ІСТОРІЯ</p><h1 style={styles.pageTitle}>Наші моменти 📸</h1></div></section>
     <section style={styles.momentsTopCard}><div style={styles.momentsTopIcon}>❤️</div><div style={{flex:1}}><div style={styles.momentsTopTitle}>Зберігаймо наші спогади</div><div style={styles.momentsTopText}>Додавайте фотографії та особливі моменти, щоб ваша історія завжди залишалася з вами.</div></div></section>
     <button style={styles.addMomentButton} onClick={()=>setShowForm(!showForm)}>{showForm ? "✕ Скасувати" : "＋ Додати момент ❤️"}</button>
     {showForm && <form style={styles.momentForm} onSubmit={handleSubmit}><div style={styles.formTitle}>Новий момент 💕</div><label style={styles.formLabel}>📸 Фотографія</label><input type="file" accept="image/*" onChange={e=>setFile(e.target.files?.[0]||null)} style={styles.fileInput}/>{file&&<div style={styles.selectedFile}>📷 {file.name}</div>}<label style={styles.formLabel}>❤️ Назва</label><input type="text" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Наприклад: Наша перша поїздка" style={styles.formInput} required/><label style={styles.formLabel}>📝 Опис</label><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Розкажи трохи про цей момент..." style={styles.formTextarea} rows={4}/><label style={styles.formLabel}>📅 Дата</label><input type="date" value={momentDate} onChange={e=>setMomentDate(e.target.value)} style={styles.formInput}/><button type="submit" style={styles.saveMomentButton} disabled={momentLoading}>{momentLoading?"Зберігаю... ❤️":"💾 Зберегти момент"}</button></form>}
-    {moments.length===0?<div style={styles.emptyMoments}><div style={styles.emptyMomentsIcon}>📸</div><div style={styles.emptyMomentsTitle}>Тут поки порожньо</div><div style={styles.emptyMomentsText}>Додайте ваш перший спільний спогад ❤️</div></div>:<div style={styles.momentsList}>{moments.map(m=><article key={m.id} style={styles.momentCard}>{m.image_url&&<img src={m.image_url} alt={m.title} style={styles.momentImage}/>}<div style={styles.momentContent}><div style={styles.momentDate}>📅 {m.moment_date}</div><h3 style={styles.momentTitle}>{m.title}</h3>{m.description&&<p style={styles.momentDescription}>{m.description}</p>}</div></article>)}</div>}
+    {moments.length===0?<div style={styles.emptyMoments}><div style={styles.emptyMomentsIcon}>📸</div><div style={styles.emptyMomentsTitle}>Тут поки порожньо</div><div style={styles.emptyMomentsText}>Додайте ваш перший спільний спогад ❤️</div></div>:<div style={styles.momentsList}>{moments.map(m=><article key={m.id} style={styles.momentCard}>{m.image_url&&<img src={m.image_url} alt={m.title} style={styles.momentImage}/>}<div style={styles.momentContent}><div style={styles.momentDate}>📅 {m.moment_date}</div><h3 style={styles.momentTitle}>{m.title}</h3> 
+    id="q7m4xp"
+<div style={styles.momentActions}>
+  <button
+    type="button"
+    onClick={() => {
+      setEditingMoment(m);
+      setTitle(m.title || "");
+      setDescription(m.description || "");
+      setMomentDate(m.moment_date || "");
+      setFile(null);
+      setShowForm(true);
+    }}
+    style={styles.editMomentButton}
+  >
+    ✏️ Редагувати
+  </button>
+
+  <button
+    type="button"
+    onClick={() => deleteMoment(m)}
+    style={styles.deleteMomentButton}
+  >
+    🗑️ Видалити
+  </button>
+</div>
+      {m.description&&<p style={styles.momentDescription}>{m.description}</p>}</div></article>)}</div>}
   </div>;
 }
 
