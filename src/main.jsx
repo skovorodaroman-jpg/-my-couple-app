@@ -635,9 +635,8 @@ const tomorrowEvent = upcomingEvents.find(
   </div>
 )}
 
-{events.map(event => (
   
-    events.map(event => (
+      {events.map(event => (
             <article
               key={event.id}
               style={styles.calendarEventCard}
