@@ -570,7 +570,7 @@ function getDaysUntil(date, eventType) {
   event.event_type
 )} дн.`}
                 </div>
-              
+                            )}
               
             </article>
           ))}
