@@ -351,7 +351,30 @@ const [editingEvent, setEditingEvent] = useState(null);
       setSaving(false);
     }
   }
+async function deleteEvent(event) {
+  const confirmed = window.confirm(
+    `Видалити подію "${event.title}"?`
+  );
 
+  if (!confirmed) return;
+
+  const { error } = await supabase
+    .from("calendar_events")
+    .delete()
+    .eq("id", event.id);
+
+  if (error) {
+    console.error("Помилка видалення події:", error);
+    alert("Не вдалося видалити подію ❤️");
+    return;
+  }
+
+  setEvents(prev =>
+    prev.filter(item => item.id !== event.id)
+  );
+
+  alert("🗑️ Подію видалено!");
+}
   function getNextOccurrence(date) {
   const original = new Date(date + "T00:00:00");
   const today = new Date();
