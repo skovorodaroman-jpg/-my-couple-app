@@ -271,7 +271,7 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) 
         </div>
       )}
     </div>
-  );
+  
 } 
 
 function MomentsPage({ moments = [], setPage, addMoment, momentLoading, deleteMoment }) {
