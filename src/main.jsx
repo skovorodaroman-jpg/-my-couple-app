@@ -775,7 +775,18 @@ editEventButton:{
   fontSize:"17px",
   cursor:"pointer"
 },
-      
+      deleteEventButton:{
+  flexShrink:0,
+  width:"38px",
+  height:"38px",
+  border:"none",
+  borderRadius:"12px",
+  background:"#fff0f4",
+  color:"#bd5878",
+  fontSize:"17px",
+  cursor:"pointer"
+},
+  
 calendarEventIcon:{
   width:"46px",
   height:"46px",
