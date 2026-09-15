@@ -283,7 +283,55 @@ function CalendarPage({ couple, session, setPage }) {
     }
   }
 
-  function getDaysUntil(date) {
+  function getNextOccurrence(date) {
+  const original = new Date(date + "T00:00:00");
+  const today = new Date();
+
+  let nextDate = new Date(
+    today.getFullYear(),
+    original.getMonth(),
+    original.getDate()
+  );
+
+  if (nextDate < new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  )) {
+    nextDate = new Date(
+      today.getFullYear() + 1,
+      original.getMonth(),
+      original.getDate()
+    );
+  }
+
+  return nextDate;
+}
+
+function getDaysUntil(date, eventType) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (
+    eventType === "anniversary" ||
+    eventType === "birthday"
+  ) {
+    const nextDate = getNextOccurrence(date);
+
+    return Math.ceil(
+      (nextDate - today) /
+      (1000 * 60 * 60 * 24)
+    );
+  }
+
+  const target = new Date(date + "T00:00:00");
+  target.setHours(0, 0, 0, 0);
+
+  return Math.ceil(
+    (target - today) /
+    (1000 * 60 * 60 * 24)
+  );
+        }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -321,10 +369,13 @@ function CalendarPage({ couple, session, setPage }) {
   }
 
   const upcomingEvents = events
-    .map(event => ({
-      ...event,
-      daysUntil: getDaysUntil(event.event_date)
-    }))
+  .map(event => ({
+    ...event,
+    daysUntil: getDaysUntil(
+      event.event_date,
+      event.event_type
+    )
+  }))
     .filter(event => event.daysUntil >= 0)
     .sort((a, b) => a.daysUntil - b.daysUntil);
 
@@ -507,9 +558,15 @@ function CalendarPage({ couple, session, setPage }) {
                 )}
               </div>
 
-              {getDaysUntil(event.event_date) >= 0 && (
+              {getDaysUntil(
+  event.event_date,
+  event.event_type
+) >= 0 && (
                 <div style={styles.eventDays}>
-                  {getDaysUntil(event.event_date) === 0
+                  {getDaysUntil(
+  event.event_date,
+  event.event_type
+) === 0
                     ? "❤️"
                     : `${getDaysUntil(event.event_date)} дн.`}
                 </div>
