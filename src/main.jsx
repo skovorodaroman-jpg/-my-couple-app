@@ -290,6 +290,67 @@ const [editingEvent, setEditingEvent] = useState(null);
       setSaving(false);
     }
   }
+    
+  async function updateEvent(e) {
+    e.preventDefault();
+
+    if (!editingEvent) return;
+
+    if (!title.trim()) {
+      alert("Введи назву події ❤️");
+      return;
+    }
+
+    if (!eventDate) {
+      alert("Обери дату 📅");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const { data, error } = await supabase
+        .from("calendar_events")
+        .update({
+          title: title.trim(),
+          event_date: eventDate,
+          description: description.trim() || null,
+          event_type: eventType
+        })
+        .eq("id", editingEvent.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Помилка редагування події:", error);
+        alert("Не вдалося змінити подію ❤️");
+        return;
+      }
+
+      setEvents(prev =>
+        prev
+          .map(event =>
+            event.id === data.id ? data : event
+          )
+          .sort(
+            (a, b) =>
+              new Date(a.event_date) -
+              new Date(b.event_date)
+          )
+      );
+
+      setEditingEvent(null);
+      setTitle("");
+      setEventDate("");
+      setDescription("");
+      setEventType("other");
+      setShowForm(false);
+
+      alert("❤️ Подію змінено!");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function getNextOccurrence(date) {
   const original = new Date(date + "T00:00:00");
