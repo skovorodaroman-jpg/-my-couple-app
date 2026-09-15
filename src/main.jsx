@@ -699,7 +699,7 @@ style={styles.deleteEventButton}
               
             </article>
                                         ))}
-      )}
+      
     </div>
   );
 }
