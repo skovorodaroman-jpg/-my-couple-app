@@ -619,6 +619,43 @@ const tomorrowEvent = upcomingEvents.find(
         </div>
       ) : (
         <div style={styles.momentsList}>
+         {todayEvent && (
+  <div style={styles.specialDayCard}>
+    <div style={styles.specialDayIcon}>❤️</div>
+
+    <div>
+      <div style={styles.specialDayTitle}>
+        Сьогодні особливий день!
+      </div>
+
+      <div style={styles.specialDayText}>
+        {todayEvent.title} 🥰
+      </div>
+
+      {todayEvent.description && (
+        <div style={styles.specialDayDescription}>
+          {todayEvent.description}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+{!todayEvent && tomorrowEvent && (
+  <div style={styles.specialDayCard}>
+    <div style={styles.specialDayIcon}>⏰</div>
+
+    <div>
+      <div style={styles.specialDayTitle}>
+        Вже завтра!
+      </div>
+
+      <div style={styles.specialDayText}>
+        {tomorrowEvent.title} ❤️
+      </div>
+    </div>
+  </div>
+)}
           {events.map(event => (
             <article
               key={event.id}
