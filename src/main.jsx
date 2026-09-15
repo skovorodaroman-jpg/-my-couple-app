@@ -557,7 +557,7 @@ function getDaysUntil(date, eventType) {
   event.event_type
 ) === 0
                     ? "❤️"
-                    : ``${getDaysUntil(
+                    : `${getDaysUntil(
   event.event_date,
   event.event_type
 )} дн.`}
