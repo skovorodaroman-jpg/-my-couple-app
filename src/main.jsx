@@ -701,9 +701,6 @@ style={styles.deleteEventButton}
           ))}
         </div>
       )}
-    </div>
-  );
-  
 }
 function DreamsPage(){return <PageWrapper icon="✨" title="Наші мрії" subtitle="Те, що ми хочемо здійснити"><EmptyState icon="🌙" title="Мрії попереду" text="Тут буде наш спільний список мрій та цілей."/></PageWrapper>}
 function PageWrapper({icon,title,subtitle,children}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>{icon}</div><h1 style={styles.pageTitle}>{title}</h1><p style={styles.pageSubtitle}>{subtitle}</p></section>{children}</div>}{return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>{icon}</div><h1 style={styles.pageTitle}>{title}</h1><p style={styles.pageSubtitle}>{subtitle}</p></section>{children}</div>}
