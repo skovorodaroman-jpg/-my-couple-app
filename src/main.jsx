@@ -624,6 +624,43 @@ const tomorrowEvent = upcomingEvents.find(
               key={event.id}
               style={styles.calendarEventCard}
             >
+              {todayEvent && (
+  <div style={styles.specialDayCard}>
+    <div style={styles.specialDayIcon}>❤️</div>
+
+    <div>
+      <div style={styles.specialDayTitle}>
+        Сьогодні особливий день!
+      </div>
+
+      <div style={styles.specialDayText}>
+        {todayEvent.title} 🥰
+      </div>
+
+      {todayEvent.description && (
+        <div style={styles.specialDayDescription}>
+          {todayEvent.description}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+{!todayEvent && tomorrowEvent && (
+  <div style={styles.specialDayCard}>
+    <div style={styles.specialDayIcon}>⏰</div>
+
+    <div>
+      <div style={styles.specialDayTitle}>
+        Вже завтра!
+      </div>
+
+      <div style={styles.specialDayText}>
+        {tomorrowEvent.title} ❤️
+      </div>
+    </div>
+  </div>
+)}
               <div style={styles.calendarEventIcon}>
                 {getEventIcon(event.event_type)}
               </div>
@@ -717,7 +754,47 @@ calendarNextCard:{
   border:"1px solid #f3dce4",
   boxShadow:"0 8px 25px rgba(140,70,90,.07)"
 },
-
+specialDayCard:{
+  display:"flex",
+  alignItems:"center",
+  gap:"14px",
+  padding:"18px",
+  marginBottom:"18px",
+  borderRadius:"22px",
+  background:"linear-gradient(135deg,#ffe8f0,#fff5f8)",
+  border:"1px solid #f3cdd9",
+  boxShadow:"0 8px 25px rgba(190,80,110,.10)"
+},
+specialDayIcon:{
+  width:"52px",
+  height:"52px",
+  flexShrink:0,
+  display:"flex",
+  alignItems:"center",
+  justifyContent:"center",
+  borderRadius:"17px",
+  background:"#fff",
+  fontSize:"26px"
+},
+specialDayTitle:{
+  fontSize:"10px",
+  fontWeight:"800",
+  letterSpacing:"1px",
+  color:"#bd5878",
+  marginBottom:"4px",
+  textTransform:"uppercase"
+},
+specialDayText:{
+  fontSize:"17px",
+  fontWeight:"800",
+  color:"#5c3542"
+},
+specialDayDescription:{
+  marginTop:"5px",
+  fontSize:"13px",
+  color:"#9d7885"
+},
+  
 calendarNextIcon:{
   width:"52px",
   height:"52px",
