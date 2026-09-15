@@ -233,9 +233,7 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) 
     <section style={styles.hero}><div style={styles.heroDecor}>❤️</div><p style={styles.eyebrow}>НАША ІСТОРІЯ</p><h1 style={styles.heroTitle}>Разом — це<br />найкраще ❤️</h1><p style={styles.heroText}>Кожен день поруч —<br />ще одна маленька<br />історія нашого кохання.</p><div style={styles.names}>{userName}<span> ❤️ </span>{partnerName || "Даша"}</div></section>
     <section style={styles.counterCard}><div style={styles.counterTitle}>Ми разом вже</div>{loveTime ? <div style={styles.counterGrid}><CounterItem value={loveTime.years} label="років" /><CounterItem value={loveTime.months} label="місяців" /><CounterItem value={loveTime.days} label="днів" /><CounterItem value={loveTime.hours} label="годин" /><CounterItem value={loveTime.minutes} label="хвилин" /><CounterItem value={loveTime.seconds} label="секунд" /></div> : <div style={styles.noCounter}>❤️</div>}<div style={styles.counterHeart}>❤️</div></section>
 
-    {moments.length===0?<div style={styles.emptyMoments}><div style={styles.emptyMomentsIcon}>📸</div><div style={styles.emptyMomentsTitle}>Тут поки порожньо</div><div style={styles.emptyMomentsText}>Додайте ваш перший спільний спогад ❤️</div></div>:<div style={styles.momentsList}>{moments.map(m=><article key={m.id} style={styles.momentCard}>{m.image_url&&<img src={m.image_url} alt={m.title} style={styles.momentImage}/>}<div style={styles.momentContent}><div style={styles.momentDate}>📅 {m.moment_date}</div><h3 style={styles.momentTitle}>{m.title}</h3> 
     
-
       {moments.length === 0 ? (
         <div style={styles.emptyMoments}>
           <div style={styles.emptyMomentsIcon}>📸</div>
