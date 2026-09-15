@@ -323,27 +323,18 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage }) {
   return <div>
     <section style={styles.hero}><div style={styles.heroDecor}>❤️</div><p style={styles.eyebrow}>НАША ІСТОРІЯ</p><h1 style={styles.heroTitle}>Разом — це<br />найкраще ❤️</h1><p style={styles.heroText}>Кожен день поруч —<br />ще одна маленька<br />історія нашого кохання.</p><div style={styles.names}>{userName}<span> ❤️ </span>{partnerName || "Даша"}</div></section>
     <section style={styles.counterCard}><div style={styles.counterTitle}>Ми разом вже</div>{loveTime ? <div style={styles.counterGrid}><CounterItem value={loveTime.years} label="років" /><CounterItem value={loveTime.months} label="місяців" /><CounterItem value={loveTime.days} label="днів" /><CounterItem value={loveTime.hours} label="годин" /><CounterItem value={loveTime.minutes} label="хвилин" /><CounterItem value={loveTime.seconds} label="секунд" /></div> : <div style={styles.noCounter}>❤️</div>}<div style={styles.counterHeart}>❤️</div></section>
-    <section><div style={styles.sectionHeader}><div><p style={styles.sectionSmall}>НАШЕ</p><h2 style={styles.sectionTitle}>Все наше ❤️</h2></div></div><div style={styles.cardsGrid}><FeatureCard icon="📸" title="Наші моменти" text="Фото та спогади" onClick={() => setPage("moments")} /><FeatureCard icon="📅" title="Календар" text="Важливі дати" onClick={() => setPage("calendar")} /><FeatureCard icon="✨" title="Наші мрії" text="Те, що здійснимо разом" onClick={() => setPage("dreams")} /><FeatureCard icon="💌" title="Для тебе" text="Маленькі сюрпризи" onClick={() => alert("💌 Скоро тут буде щось особливе!")} /></div></section>
-    <section style={styles.quoteCard}><div style={styles.quoteHeart}>💕</div><p style={styles.quote}>"Найкраще місце<br />— поруч із тобою."</p><div style={styles.quoteLine}>─────────</div><p style={styles.quoteBottom}>Наша історія тільки починається ❤️</p></section>
-    {couple?.invite_code && <section style={styles.codeCard}><div style={styles.codeIcon}>🔐</div><div><div style={styles.codeLabel}>КОД НАШОЇ ПАРИ</div><div style={styles.codeValue}>{couple.invite_code}</div></div></section>}
-  </div>;
-}
-
-function MomentsPage({ moments, setPage, addMoment, momentLoading }) {
-  const [showForm,setShowForm]=useState(false); const [editingMoment, setEditingMoment] = useState(null); const [title,setTitle]=useState(""); const [description,setDescription]=useState(""); const [momentDate,setMomentDate]=useState(new Date().toISOString().split("T")[0]); const [file,setFile]=useState(null);
-  async function handleSubmit(e){e.preventDefault();const ok=await addMoment({title,description,momentDate,file});if(ok){setTitle("");setDescription("");setMomentDate(new Date().toISOString().split("T")[0]);setFile(null);setShowForm(false);}}
-  return <div>
-    <section style={styles.pageHeader}><button style={styles.backButton} onClick={()=>setPage("home")}>←</button><div><p style={styles.sectionSmall}>НАША ІСТОРІЯ</p><h1 style={styles.pageTitle}>Наші моменти 📸</h1></div></section>
-    <section style={styles.momentsTopCard}><div style={styles.momentsTopIcon}>❤️</div><div style={{flex:1}}><div style={styles.momentsTopTitle}>Зберігаймо наші спогади</div><div style={styles.momentsTopText}>Додавайте фотографії та особливі моменти, щоб ваша історія завжди залишалася з вами.</div></div></section>
-    <button style={styles.addMomentButton} onClick={()=>setShowForm(!showForm)}>{showForm ? "✕ Скасувати" : "＋ Додати момент ❤️"}</button>
-    {showForm && <form
-  style={styles.momentForm}
-  onSubmit={editingMoment ? updateMoment : handleSubmit}
-><div style={styles.formTitle}>
-  {editingMoment ? "Редагувати момент ✏️" : "Новий момент 💕"}
-</div><label style={styles.formLabel}>📸 Фотографія</label><input type="file" accept="image/*" onChange={e=>setFile(e.target.files?.[0]||null)} style={styles.fileInput}/>{file&&<div style={styles.selectedFile}>📷 {file.name}</div>}<label style={styles.formLabel}>❤️ Назва</label><input type="text" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Наприклад: Наша перша поїздка" style={styles.formInput} required/><label style={styles.formLabel}>📝 Опис</label><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Розкажи трохи про цей момент..." style={styles.formTextarea} rows={4}/><label style={styles.formLabel}>📅 Дата</label><input type="date" value={momentDate} onChange={e=>setMomentDate(e.target.value)} style={styles.formInput}/><button type="submit" style={styles.saveMomentButton} disabled={momentLoading}>{momentLoading?"Зберігаю... ❤️": editingMoment
-    ? "💾 Зберегти зміни"
-    : "💾 Зберегти момент"}/button></form>}
+<button
+  type="submit"
+  style={styles.saveMomentButton}
+  disabled={momentLoading}
+>
+  {momentLoading
+    ? "Зберігаю... ❤️"
+    : editingMoment
+      ? "💾 Зберегти зміни"
+      : "💾 Зберегти момент"}
+</button>
+</form>
     {moments.length===0?<div style={styles.emptyMoments}><div style={styles.emptyMomentsIcon}>📸</div><div style={styles.emptyMomentsTitle}>Тут поки порожньо</div><div style={styles.emptyMomentsText}>Додайте ваш перший спільний спогад ❤️</div></div>:<div style={styles.momentsList}>{moments.map(m=><article key={m.id} style={styles.momentCard}>{m.image_url&&<img src={m.image_url} alt={m.title} style={styles.momentImage}/>}<div style={styles.momentContent}><div style={styles.momentDate}>📅 {m.moment_date}</div><h3 style={styles.momentTitle}>{m.title}</h3> 
     id="q7m4xp"
 <div style={styles.momentActions}>
