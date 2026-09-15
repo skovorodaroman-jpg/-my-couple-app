@@ -571,6 +571,13 @@ function getDaysUntil(date, eventType) {
 )} дн.`}
                 </div>
                             )}
+                            <button
+                type="button"
+                onClick={() => startEditEvent(event)}
+                style={styles.editEventButton}
+              >
+                ✏️
+              </button>
               
             </article>
           ))}
