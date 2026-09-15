@@ -185,7 +185,50 @@ async function deleteMoment(moment) {
     setMomentLoading(false);
   }
                }
-  
+  async function updateMoment({ id, title, description, momentDate }) {
+  if (!id) return false;
+
+  if (!title.trim()) {
+    alert("Введи назву моменту ❤️");
+    return false;
+  }
+
+  try {
+    setMomentLoading(true);
+
+    const { data, error } = await supabase
+      .from("moments")
+      .update({
+        title: title.trim(),
+        description: description?.trim() || null,
+        moment_date: momentDate
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      alert("Не вдалося змінити момент ❤️");
+      return false;
+    }
+
+    setMoments(prev =>
+      prev.map(item =>
+        item.id === id ? data : item
+      )
+    );
+
+    alert("Момент змінено ❤️");
+    return true;
+  } catch (error) {
+    console.error(error);
+    alert("Сталася помилка. Спробуй ще раз.");
+    return false;
+  } finally {
+    setMomentLoading(false);
+  }
+  }
   
   async function saveSettings(event) {
     event.preventDefault();
@@ -212,7 +255,16 @@ async function deleteMoment(moment) {
     <header style={styles.header}><div><div style={styles.logo}>My Couple</div><div style={styles.subtitle}>наше маленьке місце ❤️</div></div><button style={styles.settingsButton} onClick={() => setPage("settings")}>⚙️</button></header>
     <main style={styles.content}>
       {page === "home" && <HomePage profile={profile} couple={couple} partnerName={partnerName} loveTime={loveTime} setPage={setPage} moments={moments} />}
-      {page === "moments" && <MomentsPage moments={moments} setPage={setPage} addMoment={addMoment} momentLoading={momentLoading} deleteMoment={deleteMoment} />}
+{page === "moments" && (
+  <MomentsPage
+    moments={moments}
+    setPage={setPage}
+    addMoment={addMoment}
+    updateMoment={updateMoment}
+    momentLoading={momentLoading}
+    deleteMoment={deleteMoment}
+  />
+)}
       {page === "calendar" && (
   <CalendarPage
     couple={couple}
@@ -274,31 +326,69 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) 
   
 } 
 
-function MomentsPage({ moments = [], setPage, addMoment, momentLoading, deleteMoment }) {
+function MomentsPage({
+  moments = [],
+  setPage,
+  addMoment,
+  updateMoment,
+  momentLoading,
+  deleteMoment
+}) {
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [momentDate, setMomentDate] = useState(new Date().toISOString().split("T")[0]);
   const [file, setFile] = useState(null);
-
+  const [editingMoment, setEditingMoment] = useState(null);
+function startEditMoment(moment) {
+  setEditingMoment(moment);
+  setTitle(moment.title || "");
+  setDescription(moment.description || "");
+  setMomentDate(
+    moment.moment_date ||
+    new Date().toISOString().split("T")[0]
+  );
+  setFile(null);
+  setShowForm(true);
+}
   async function handleSubmit(e) {
-    e.preventDefault();
+  e.preventDefault();
 
-    const ok = await addMoment({
+  if (editingMoment) {
+    const ok = await updateMoment({
+      id: editingMoment.id,
       title,
       description,
-      momentDate,
-      file
+      momentDate
     });
 
     if (ok) {
+      setEditingMoment(null);
       setTitle("");
       setDescription("");
       setMomentDate(new Date().toISOString().split("T")[0]);
       setFile(null);
       setShowForm(false);
     }
+
+    return;
   }
+
+  const ok = await addMoment({
+    title,
+    description,
+    momentDate,
+    file
+  });
+
+  if (ok) {
+    setTitle("");
+    setDescription("");
+    setMomentDate(new Date().toISOString().split("T")[0]);
+    setFile(null);
+    setShowForm(false);
+  }
+}
 
   return (
     <div>
@@ -403,15 +493,24 @@ function MomentsPage({ moments = [], setPage, addMoment, momentLoading, deleteMo
                 )}
 
                 <div style={styles.momentActions}>
-                  <button
-                    type="button"
-                    onClick={() => deleteMoment(m)}
-                    style={styles.deleteMomentButton}
-                    disabled={momentLoading}
-                  >
-                    🗑️ Видалити
-                  </button>
-                </div>
+  <button
+    type="button"
+    onClick={() => startEditMoment(m)}
+    style={styles.editMomentButton}
+    disabled={momentLoading}
+  >
+    ✏️ Редагувати
+  </button>
+
+  <button
+    type="button"
+    onClick={() => deleteMoment(m)}
+    style={styles.deleteMomentButton}
+    disabled={momentLoading}
+  >
+    🗑️ Видалити
+  </button>
+</div>
               </div>
             </article>
           ))}
@@ -1250,7 +1349,16 @@ settingsCard:{padding:"21px",borderRadius:"25px",background:"#fff",border:"1px s
 bottomNav:{position:"fixed",zIndex:30,bottom:0,left:0,right:0,height:"70px",display:"flex",justifyContent:"center",gap:"2px",padding:"5px",boxSizing:"border-box",background:"rgba(255,255,255,.96)",backdropFilter:"blur(14px)",borderTop:"1px solid rgba(210,150,170,.18)",boxShadow:"0 -5px 25px rgba(100,50,70,.07)"},navButton:{flex:1,maxWidth:"100px",border:"none",background:"transparent",borderRadius:"14px",color:"#a88a94",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"3px"},navActive:{background:"#fff0f4",color:"#b85876"},
 momentsTopCard:{display:"flex",gap:"16px",alignItems:"center",padding:"20px",marginBottom:"18px",background:"#fff5f7",borderRadius:"22px"},momentsTopIcon:{width:"52px",height:"52px",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff",borderRadius:"50%",fontSize:"25px",flexShrink:0},momentsTopTitle:{fontSize:"18px",fontWeight:"700",color:"#3b2630",marginBottom:"6px"},momentsTopText:{fontSize:"14px",lineHeight:"1.5",color:"#806c73"},addMomentButton:{width:"100%",padding:"16px",border:"none",borderRadius:"18px",background:"#e96b83",color:"#fff",fontSize:"16px",fontWeight:"700",cursor:"pointer",marginBottom:"18px"},momentForm:{background:"#fff",padding:"20px",borderRadius:"22px",marginBottom:"22px",boxShadow:"0 5px 20px rgba(0,0,0,0.06)"},formTitle:{fontSize:"21px",fontWeight:"700",color:"#3b2630",marginBottom:"20px"},formLabel:{display:"block",fontSize:"14px",fontWeight:"600",color:"#5c464e",marginTop:"14px",marginBottom:"7px"},formInput:{width:"100%",boxSizing:"border-box",padding:"13px 14px",border:"1px solid #eadde1",borderRadius:"13px",background:"#fff",fontSize:"15px"},formTextarea:{width:"100%",boxSizing:"border-box",padding:"13px 14px",border:"1px solid #eadde1",borderRadius:"13px",background:"#fff",fontSize:"15px",resize:"vertical",fontFamily:"inherit"},fileInput:{width:"100%",boxSizing:"border-box",padding:"12px",border:"1px dashed #e2cbd2",borderRadius:"13px",background:"#fff8fa"},selectedFile:{marginTop:"8px",padding:"10px",borderRadius:"10px",background:"#f8f1f3",fontSize:"13px",color:"#705a62"},saveMomentButton:{width:"100%",padding:"15px",marginTop:"20px",border:"none",borderRadius:"15px",background:"#3b2630",color:"#fff",fontSize:"15px",fontWeight:"700",cursor:"pointer"},emptyMoments:{textAlign:"center",padding:"55px 20px",background:"#fff",borderRadius:"22px",marginTop:"10px"},emptyMomentsIcon:{fontSize:"48px",marginBottom:"12px"},emptyMomentsTitle:{fontSize:"19px",fontWeight:"700",color:"#3b2630",marginBottom:"7px"},emptyMomentsText:{fontSize:"14px",color:"#806c73"},momentsList:{display:"flex",flexDirection:"column",gap:"18px"},momentCard:{background:"#fff",borderRadius:"22px",overflow:"hidden",boxShadow:"0 5px 20px rgba(0,0,0,0.06)"},momentImage:{width:"100%",display:"block",maxHeight:"420px",objectFit:"cover"},momentContent:{padding:"18px"},momentDate:{fontSize:"12px",color:"#a08089",marginBottom:"7px"},momentTitle:{margin:"0 0 8px",fontSize:"20px",color:"#3b2630"},momentDescription:{margin:0,fontSize:"14px",lineHeight:"1.6",color:"#806c73"},
 momentActions:{display:"flex",justifyContent:"flex-end",marginTop:"14px"},
-deleteMomentButton:{border:"none",borderRadius:"12px",padding:"10px 13px",background:"#fff0f4",color:"#bd5878",fontSize:"13px",fontWeight:"700",cursor:"pointer"},
+editMomentButton: {
+  padding: "8px 12px",
+  borderRadius: "10px",
+  border: "1px solid #e5e7eb",
+  background: "#fff",
+  color: "#333",
+  cursor: "pointer",
+  fontWeight: "600"
+},
+  deleteMomentButton:{border:"none",borderRadius:"12px",padding:"10px 13px",background:"#fff0f4",color:"#bd5878",fontSize:"13px",fontWeight:"700",cursor:"pointer"},
 
 
   selectedDayCard:{
