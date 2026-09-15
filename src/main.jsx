@@ -578,9 +578,31 @@ const tomorrowEvent = upcomingEvents.find(
       ‹
     </button>
 
-    <div style={styles.monthCalendarTitle}>
-      {formatCalendarMonth()}
-    </div>
+   <div style={styles.monthCalendarTitleWrap}>
+  <div style={styles.monthCalendarTitle}>
+    {formatCalendarMonth()}
+  </div>
+
+  <button
+    type="button"
+    onClick={() => {
+      const today = new Date();
+
+      setCalendarMonth(
+        new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          1
+        )
+      );
+
+      setSelectedCalendarDate(null);
+    }}
+    style={styles.todayCalendarButton}
+  >
+    Сьогодні
+  </button>
+</div>
 
     <button
       type="button"
@@ -643,10 +665,8 @@ const tomorrowEvent = upcomingEvents.find(
           key={dateKey}
           type="button"
           onClick={() => {
-            setSelectedCalendarDate(dateKey);
-            setEventDate(dateKey);
-            setShowForm(true);
-          }}
+  setSelectedCalendarDate(dateKey);
+}}
           style={{
             ...styles.calendarDay,
             ...(isToday
@@ -678,6 +698,85 @@ const tomorrowEvent = upcomingEvents.find(
     })}
   </div>
 </section>
+      {selectedCalendarDate && (
+  <section style={styles.selectedDayCard}>
+    <div style={styles.selectedDayHeader}>
+      <div>
+        <div style={styles.selectedDayLabel}>
+          ОБРАНА ДАТА
+        </div>
+
+        <div style={styles.selectedDayTitle}>
+          📅 {selectedCalendarDate}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => {
+          setEventDate(selectedCalendarDate);
+          setEditingEvent(null);
+          setTitle("");
+          setDescription("");
+          setEventType("other");
+          setShowForm(true);
+        }}
+        style={styles.selectedDayAddButton}
+      >
+        ＋
+      </button>
+    </div>
+
+    {getEventsForCalendarDay(
+      new Date(selectedCalendarDate + "T00:00:00")
+    ).length === 0 ? (
+      <div style={styles.noSelectedDayEvents}>
+        На цей день подій немає ❤️
+      </div>
+    ) : (
+      getEventsForCalendarDay(
+        new Date(selectedCalendarDate + "T00:00:00")
+      ).map(event => (
+        <div
+          key={event.id}
+          style={styles.selectedDayEvent}
+        >
+          <div style={styles.selectedDayEventIcon}>
+            {getEventIcon(event.event_type)}
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <div style={styles.selectedDayEventTitle}>
+              {event.title}
+            </div>
+
+            {event.description && (
+              <div style={styles.selectedDayEventDescription}>
+                {event.description}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => startEditEvent(event)}
+            style={styles.editEventButton}
+          >
+            ✏️
+          </button>
+
+          <button
+            type="button"
+            onClick={() => deleteEvent(event)}
+            style={styles.deleteEventButton}
+          >
+            🗑️
+          </button>
+        </div>
+      ))
+    )}
+  </section>
+)}
       
       {nextEvent && (
         <section style={styles.calendarNextCard}>
@@ -915,6 +1014,92 @@ settingsCard:{padding:"21px",borderRadius:"25px",background:"#fff",border:"1px s
 bottomNav:{position:"fixed",zIndex:30,bottom:0,left:0,right:0,height:"70px",display:"flex",justifyContent:"center",gap:"2px",padding:"5px",boxSizing:"border-box",background:"rgba(255,255,255,.96)",backdropFilter:"blur(14px)",borderTop:"1px solid rgba(210,150,170,.18)",boxShadow:"0 -5px 25px rgba(100,50,70,.07)"},navButton:{flex:1,maxWidth:"100px",border:"none",background:"transparent",borderRadius:"14px",color:"#a88a94",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"3px"},navActive:{background:"#fff0f4",color:"#b85876"},
 momentsTopCard:{display:"flex",gap:"16px",alignItems:"center",padding:"20px",marginBottom:"18px",background:"#fff5f7",borderRadius:"22px"},momentsTopIcon:{width:"52px",height:"52px",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff",borderRadius:"50%",fontSize:"25px",flexShrink:0},momentsTopTitle:{fontSize:"18px",fontWeight:"700",color:"#3b2630",marginBottom:"6px"},momentsTopText:{fontSize:"14px",lineHeight:"1.5",color:"#806c73"},addMomentButton:{width:"100%",padding:"16px",border:"none",borderRadius:"18px",background:"#e96b83",color:"#fff",fontSize:"16px",fontWeight:"700",cursor:"pointer",marginBottom:"18px"},momentForm:{background:"#fff",padding:"20px",borderRadius:"22px",marginBottom:"22px",boxShadow:"0 5px 20px rgba(0,0,0,0.06)"},formTitle:{fontSize:"21px",fontWeight:"700",color:"#3b2630",marginBottom:"20px"},formLabel:{display:"block",fontSize:"14px",fontWeight:"600",color:"#5c464e",marginTop:"14px",marginBottom:"7px"},formInput:{width:"100%",boxSizing:"border-box",padding:"13px 14px",border:"1px solid #eadde1",borderRadius:"13px",background:"#fff",fontSize:"15px"},formTextarea:{width:"100%",boxSizing:"border-box",padding:"13px 14px",border:"1px solid #eadde1",borderRadius:"13px",background:"#fff",fontSize:"15px",resize:"vertical",fontFamily:"inherit"},fileInput:{width:"100%",boxSizing:"border-box",padding:"12px",border:"1px dashed #e2cbd2",borderRadius:"13px",background:"#fff8fa"},selectedFile:{marginTop:"8px",padding:"10px",borderRadius:"10px",background:"#f8f1f3",fontSize:"13px",color:"#705a62"},saveMomentButton:{width:"100%",padding:"15px",marginTop:"20px",border:"none",borderRadius:"15px",background:"#3b2630",color:"#fff",fontSize:"15px",fontWeight:"700",cursor:"pointer"},emptyMoments:{textAlign:"center",padding:"55px 20px",background:"#fff",borderRadius:"22px",marginTop:"10px"},emptyMomentsIcon:{fontSize:"48px",marginBottom:"12px"},emptyMomentsTitle:{fontSize:"19px",fontWeight:"700",color:"#3b2630",marginBottom:"7px"},emptyMomentsText:{fontSize:"14px",color:"#806c73"},momentsList:{display:"flex",flexDirection:"column",gap:"18px"},momentCard:{background:"#fff",borderRadius:"22px",overflow:"hidden",boxShadow:"0 5px 20px rgba(0,0,0,0.06)"},momentImage:{width:"100%",display:"block",maxHeight:"420px",objectFit:"cover"},momentContent:{padding:"18px"},momentDate:{fontSize:"12px",color:"#a08089",marginBottom:"7px"},momentTitle:{margin:"0 0 8px",fontSize:"20px",color:"#3b2630"},momentDescription:{margin:0,fontSize:"14px",lineHeight:"1.6",color:"#806c73"},
 
+  selectedDayCard:{
+  padding:"16px",
+  marginBottom:"18px",
+  background:"#fff8fa",
+  borderRadius:"20px",
+  border:"1px solid #f2dce4",
+  boxShadow:"0 6px 20px rgba(140,70,90,.05)"
+},
+
+selectedDayHeader:{
+  display:"flex",
+  alignItems:"center",
+  justifyContent:"space-between",
+  gap:"12px",
+  marginBottom:"12px"
+},
+
+selectedDayLabel:{
+  fontSize:"9px",
+  fontWeight:"800",
+  letterSpacing:"1px",
+  color:"#b47789",
+  marginBottom:"4px"
+},
+
+selectedDayTitle:{
+  fontSize:"16px",
+  fontWeight:"800",
+  color:"#5c3542"
+},
+
+selectedDayAddButton:{
+  width:"40px",
+  height:"40px",
+  border:"none",
+  borderRadius:"13px",
+  background:"#bd5878",
+  color:"#fff",
+  fontSize:"23px",
+  cursor:"pointer"
+},
+
+noSelectedDayEvents:{
+  padding:"13px",
+  borderRadius:"13px",
+  background:"#fff",
+  color:"#a27d89",
+  fontSize:"12px",
+  textAlign:"center"
+},
+
+selectedDayEvent:{
+  display:"flex",
+  alignItems:"center",
+  gap:"10px",
+  padding:"11px",
+  marginTop:"8px",
+  background:"#fff",
+  borderRadius:"14px",
+  border:"1px solid #f3e4e9"
+},
+
+selectedDayEventIcon:{
+  width:"38px",
+  height:"38px",
+  flexShrink:0,
+  display:"flex",
+  alignItems:"center",
+  justifyContent:"center",
+  borderRadius:"11px",
+  background:"#fff0f4",
+  fontSize:"18px"
+},
+
+selectedDayEventTitle:{
+  fontSize:"13px",
+  fontWeight:"800",
+  color:"#65414d"
+},
+
+selectedDayEventDescription:{
+  marginTop:"3px",
+  fontSize:"11px",
+  color:"#a27d89"
+},
+  
   monthCalendarCard:{
   padding:"18px",
   marginBottom:"18px",
@@ -931,6 +1116,9 @@ monthCalendarHeader:{
   marginBottom:"18px"
 },
 
+  monthCalendarTitleWrap:{
+  
+  
 monthCalendarTitle:{
   fontSize:"18px",
   fontWeight:"800",
