@@ -265,16 +265,6 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) 
                   </p>
                 )}
 
-                <div style={styles.momentActions}>
-                  <button
-                    type="button"
-                    onClick={() => deleteMoment(m)}
-                    style={styles.deleteMomentButton}
-                    disabled={momentLoading}
-                  >
-                    🗑️ Видалити
-                  </button>
-                </div>
               </div>
             </article>
           ))}
