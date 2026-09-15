@@ -198,6 +198,11 @@ function CalendarPage({ couple, session, setPage }) {
   const [description, setDescription] = useState("");
   const [eventType, setEventType] = useState("other");
 const [editingEvent, setEditingEvent] = useState(null);
+  const [calendarMonth, setCalendarMonth] = useState(
+  new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+);
+
+const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
   useEffect(() => {
     if (couple?.id) loadEvents();
   }, [couple?.id]);
@@ -448,7 +453,85 @@ function getDaysUntil(date, eventType) {
 
     return names[type] || "Інше";
   }
+function getCalendarDays() {
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
 
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  // Понеділок = 0, неділя = 6
+  const startDay = (firstDay.getDay() + 6) % 7;
+  const totalDays = lastDay.getDate();
+
+  const days = [];
+
+  // Порожні клітинки перед 1 числом
+  for (let i = 0; i < startDay; i++) {
+    days.push(null);
+  }
+
+  // Дні місяця
+  for (let day = 1; day <= totalDays; day++) {
+    days.push(
+      new Date(year, month, day)
+    );
+  }
+
+  return days;
+}
+
+function formatCalendarMonth() {
+  return calendarMonth.toLocaleDateString("uk-UA", {
+    month: "long",
+    year: "numeric"
+  });
+}
+
+function changeCalendarMonth(offset) {
+  setCalendarMonth(
+    new Date(
+      calendarMonth.getFullYear(),
+      calendarMonth.getMonth() + offset,
+      1
+    )
+  );
+
+  setSelectedCalendarDate(null);
+}
+
+function getEventsForCalendarDay(day) {
+  if (!day) return [];
+
+  const year = day.getFullYear();
+  const month = String(day.getMonth() + 1).padStart(2, "0");
+  const date = String(day.getDate()).padStart(2, "0");
+
+  const dateString = `${year}-${month}-${date}`;
+
+  return events.filter(event => {
+    if (event.event_date === dateString) {
+      return true;
+    }
+
+    if (
+      event.event_type === "anniversary" ||
+      event.event_type === "birthday"
+    ) {
+      const original = new Date(
+        event.event_date + "T00:00:00"
+      );
+
+      return (
+        original.getMonth() === day.getMonth() &&
+        original.getDate() === day.getDate()
+      );
+    }
+
+    return false;
+  });
+    }
+  
   const upcomingEvents = events
   .map(event => ({
     ...event,
@@ -485,6 +568,117 @@ const tomorrowEvent = upcomingEvents.find(
         </div>
       </section>
 
+      <section style={styles.monthCalendarCard}>
+  <div style={styles.monthCalendarHeader}>
+    <button
+      type="button"
+      onClick={() => changeCalendarMonth(-1)}
+      style={styles.monthCalendarArrow}
+    >
+      ‹
+    </button>
+
+    <div style={styles.monthCalendarTitle}>
+      {formatCalendarMonth()}
+    </div>
+
+    <button
+      type="button"
+      onClick={() => changeCalendarMonth(1)}
+      style={styles.monthCalendarArrow}
+    >
+      ›
+    </button>
+  </div>
+
+  <div style={styles.calendarWeekDays}>
+    {[
+      "Пн",
+      "Вт",
+      "Ср",
+      "Чт",
+      "Пт",
+      "Сб",
+      "Нд"
+    ].map(day => (
+      <div
+        key={day}
+        style={styles.calendarWeekDay}
+      >
+        {day}
+      </div>
+    ))}
+  </div>
+
+  <div style={styles.calendarGrid}>
+    {getCalendarDays().map((day, index) => {
+      if (!day) {
+        return (
+          <div
+            key={`empty-${index}`}
+            style={styles.calendarEmptyDay}
+          />
+        );
+      }
+
+      const dayEvents = getEventsForCalendarDay(day);
+
+      const today = new Date();
+
+      const isToday =
+        day.getFullYear() === today.getFullYear() &&
+        day.getMonth() === today.getMonth() &&
+        day.getDate() === today.getDate();
+
+      const dateKey =
+        `${day.getFullYear()}-` +
+        `${String(day.getMonth() + 1).padStart(2, "0")}-` +
+        `${String(day.getDate()).padStart(2, "0")}`;
+
+      const isSelected =
+        selectedCalendarDate === dateKey;
+
+      return (
+        <button
+          key={dateKey}
+          type="button"
+          onClick={() => {
+            setSelectedCalendarDate(dateKey);
+            setEventDate(dateKey);
+            setShowForm(true);
+          }}
+          style={{
+            ...styles.calendarDay,
+            ...(isToday
+              ? styles.calendarToday
+              : {}),
+            ...(isSelected
+              ? styles.calendarSelectedDay
+              : {})
+          }}
+        >
+          <span>
+            {day.getDate()}
+          </span>
+
+          {dayEvents.length > 0 && (
+            <div style={styles.calendarEventDots}>
+              {dayEvents.slice(0, 3).map(event => (
+                <span
+                  key={event.id}
+                  style={styles.calendarEventDot}
+                >
+                  {getEventIcon(event.event_type)}
+                </span>
+              ))}
+            </div>
+          )}
+        </button>
+      );
+    })}
+  </div>
+</section>
+      
       {nextEvent && (
         <section style={styles.calendarNextCard}>
           <div style={styles.calendarNextIcon}>
@@ -721,6 +915,107 @@ settingsCard:{padding:"21px",borderRadius:"25px",background:"#fff",border:"1px s
 bottomNav:{position:"fixed",zIndex:30,bottom:0,left:0,right:0,height:"70px",display:"flex",justifyContent:"center",gap:"2px",padding:"5px",boxSizing:"border-box",background:"rgba(255,255,255,.96)",backdropFilter:"blur(14px)",borderTop:"1px solid rgba(210,150,170,.18)",boxShadow:"0 -5px 25px rgba(100,50,70,.07)"},navButton:{flex:1,maxWidth:"100px",border:"none",background:"transparent",borderRadius:"14px",color:"#a88a94",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"3px"},navActive:{background:"#fff0f4",color:"#b85876"},
 momentsTopCard:{display:"flex",gap:"16px",alignItems:"center",padding:"20px",marginBottom:"18px",background:"#fff5f7",borderRadius:"22px"},momentsTopIcon:{width:"52px",height:"52px",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff",borderRadius:"50%",fontSize:"25px",flexShrink:0},momentsTopTitle:{fontSize:"18px",fontWeight:"700",color:"#3b2630",marginBottom:"6px"},momentsTopText:{fontSize:"14px",lineHeight:"1.5",color:"#806c73"},addMomentButton:{width:"100%",padding:"16px",border:"none",borderRadius:"18px",background:"#e96b83",color:"#fff",fontSize:"16px",fontWeight:"700",cursor:"pointer",marginBottom:"18px"},momentForm:{background:"#fff",padding:"20px",borderRadius:"22px",marginBottom:"22px",boxShadow:"0 5px 20px rgba(0,0,0,0.06)"},formTitle:{fontSize:"21px",fontWeight:"700",color:"#3b2630",marginBottom:"20px"},formLabel:{display:"block",fontSize:"14px",fontWeight:"600",color:"#5c464e",marginTop:"14px",marginBottom:"7px"},formInput:{width:"100%",boxSizing:"border-box",padding:"13px 14px",border:"1px solid #eadde1",borderRadius:"13px",background:"#fff",fontSize:"15px"},formTextarea:{width:"100%",boxSizing:"border-box",padding:"13px 14px",border:"1px solid #eadde1",borderRadius:"13px",background:"#fff",fontSize:"15px",resize:"vertical",fontFamily:"inherit"},fileInput:{width:"100%",boxSizing:"border-box",padding:"12px",border:"1px dashed #e2cbd2",borderRadius:"13px",background:"#fff8fa"},selectedFile:{marginTop:"8px",padding:"10px",borderRadius:"10px",background:"#f8f1f3",fontSize:"13px",color:"#705a62"},saveMomentButton:{width:"100%",padding:"15px",marginTop:"20px",border:"none",borderRadius:"15px",background:"#3b2630",color:"#fff",fontSize:"15px",fontWeight:"700",cursor:"pointer"},emptyMoments:{textAlign:"center",padding:"55px 20px",background:"#fff",borderRadius:"22px",marginTop:"10px"},emptyMomentsIcon:{fontSize:"48px",marginBottom:"12px"},emptyMomentsTitle:{fontSize:"19px",fontWeight:"700",color:"#3b2630",marginBottom:"7px"},emptyMomentsText:{fontSize:"14px",color:"#806c73"},momentsList:{display:"flex",flexDirection:"column",gap:"18px"},momentCard:{background:"#fff",borderRadius:"22px",overflow:"hidden",boxShadow:"0 5px 20px rgba(0,0,0,0.06)"},momentImage:{width:"100%",display:"block",maxHeight:"420px",objectFit:"cover"},momentContent:{padding:"18px"},momentDate:{fontSize:"12px",color:"#a08089",marginBottom:"7px"},momentTitle:{margin:"0 0 8px",fontSize:"20px",color:"#3b2630"},momentDescription:{margin:0,fontSize:"14px",lineHeight:"1.6",color:"#806c73"},
 
+  monthCalendarCard:{
+  padding:"18px",
+  marginBottom:"18px",
+  background:"#fff",
+  borderRadius:"22px",
+  border:"1px solid #f2e0e6",
+  boxShadow:"0 8px 25px rgba(140,70,90,.06)"
+},
+
+monthCalendarHeader:{
+  display:"flex",
+  alignItems:"center",
+  justifyContent:"space-between",
+  marginBottom:"18px"
+},
+
+monthCalendarTitle:{
+  fontSize:"18px",
+  fontWeight:"800",
+  color:"#5c3542",
+  textTransform:"capitalize"
+},
+
+monthCalendarArrow:{
+  width:"40px",
+  height:"40px",
+  border:"none",
+  borderRadius:"13px",
+  background:"#fff0f4",
+  color:"#bd5878",
+  fontSize:"28px",
+  lineHeight:"1",
+  cursor:"pointer"
+},
+
+calendarWeekDays:{
+  display:"grid",
+  gridTemplateColumns:"repeat(7, 1fr)",
+  gap:"5px",
+  marginBottom:"7px"
+},
+
+calendarWeekDay:{
+  textAlign:"center",
+  fontSize:"10px",
+  fontWeight:"800",
+  color:"#b47789",
+  padding:"5px 0"
+},
+
+calendarGrid:{
+  display:"grid",
+  gridTemplateColumns:"repeat(7, 1fr)",
+  gap:"5px"
+},
+
+calendarEmptyDay:{
+  minHeight:"54px"
+},
+
+calendarDay:{
+  minHeight:"54px",
+  padding:"6px 3px",
+  border:"1px solid #f4e5ea",
+  borderRadius:"13px",
+  background:"#fff",
+  color:"#65414d",
+  fontSize:"14px",
+  fontWeight:"700",
+  cursor:"pointer",
+  display:"flex",
+  flexDirection:"column",
+  alignItems:"center",
+  justifyContent:"flex-start"
+},
+
+calendarToday:{
+  background:"#fff0f4",
+  border:"2px solid #e7a9bc",
+  color:"#bd5878"
+},
+
+calendarSelectedDay:{
+  boxShadow:"0 0 0 2px #bd5878 inset"
+},
+
+calendarEventDots:{
+  display:"flex",
+  alignItems:"center",
+  justifyContent:"center",
+  gap:"1px",
+  marginTop:"4px",
+  width:"100%",
+  overflow:"hidden"
+},
+
+calendarEventDot:{
+  fontSize:"11px",
+  lineHeight:"1"
+},
+  
 calendarNextCard:{
   display:"flex",
   alignItems:"center",
