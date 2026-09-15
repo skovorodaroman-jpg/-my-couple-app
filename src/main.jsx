@@ -597,29 +597,7 @@ const tomorrowEvent = upcomingEvents.find(
           </button>
         </form>
       )}
-
-      {loading ? (
-        <div style={styles.emptyMoments}>
-          <div style={styles.emptyMomentsIcon}>📅</div>
-          <div style={styles.emptyMomentsTitle}>
-            Завантажуємо календар...
-          </div>
-        </div>
-      ) : events.length === 0 ? (
-        <div style={styles.emptyMoments}>
-          <div style={styles.emptyMomentsIcon}>❤️</div>
-
-          <div style={styles.emptyMomentsTitle}>
-            Поки немає важливих дат
-          </div>
-
-          <div style={styles.emptyMomentsText}>
-            Додайте вашу першу особливу дату ❤️
-          </div>
-        </div>
-      ) : (
-        <div style={styles.momentsList}>
-         {todayEvent && (
+{todayEvent && (
   <div style={styles.specialDayCard}>
     <div style={styles.specialDayIcon}>❤️</div>
 
@@ -656,48 +634,15 @@ const tomorrowEvent = upcomingEvents.find(
     </div>
   </div>
 )}
-          {events.map(event => (
+
+{events.map(event => (
+  
+    events.map(event => (
             <article
               key={event.id}
               style={styles.calendarEventCard}
             >
-              {todayEvent && (
-  <div style={styles.specialDayCard}>
-    <div style={styles.specialDayIcon}>❤️</div>
-
-    <div>
-      <div style={styles.specialDayTitle}>
-        Сьогодні особливий день!
-      </div>
-
-      <div style={styles.specialDayText}>
-        {todayEvent.title} 🥰
-      </div>
-
-      {todayEvent.description && (
-        <div style={styles.specialDayDescription}>
-          {todayEvent.description}
-        </div>
-      )}
-    </div>
-  </div>
-)}
-
-{!todayEvent && tomorrowEvent && (
-  <div style={styles.specialDayCard}>
-    <div style={styles.specialDayIcon}>⏰</div>
-
-    <div>
-      <div style={styles.specialDayTitle}>
-        Вже завтра!
-      </div>
-
-      <div style={styles.specialDayText}>
-        {tomorrowEvent.title} ❤️
-      </div>
-    </div>
-  </div>
-)}
+              
               <div style={styles.calendarEventIcon}>
                 {getEventIcon(event.event_type)}
               </div>
