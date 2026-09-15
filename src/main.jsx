@@ -211,7 +211,7 @@ async function deleteMoment(moment) {
     <header style={styles.header}><div><div style={styles.logo}>My Couple</div><div style={styles.subtitle}>наше маленьке місце ❤️</div></div><button style={styles.settingsButton} onClick={() => setPage("settings")}>⚙️</button></header>
     <main style={styles.content}>
       {page === "home" && <HomePage profile={profile} couple={couple} partnerName={partnerName} loveTime={loveTime} setPage={setPage} />}
-      {page === "moments" && <MomentsPage moments={moments} setPage={setPage} addMoment={addMoment} momentLoading={momentLoading} />}
+      {page === "moments" && <MomentsPage moments={moments} setPage={setPage} addMoment={addMoment} momentLoading={momentLoading} deleteMoment={deleteMoment} />}
       {page === "calendar" && (
   <CalendarPage
     couple={couple}
