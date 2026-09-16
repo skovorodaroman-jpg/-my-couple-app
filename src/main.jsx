@@ -484,7 +484,7 @@ function startEditMoment(moment) {
       ? "✏️ Зберегти зміни"
       : "💾 Зберегти момент"}
 </button>
-
+        </form>
       {moments.length === 0 ? (
         <div style={styles.emptyMoments}>
           <div style={styles.emptyMomentsIcon}>📸</div>
