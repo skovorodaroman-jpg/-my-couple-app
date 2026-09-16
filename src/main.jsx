@@ -499,8 +499,23 @@ function startEditMoment(moment) {
           {moments.map(m => (
             <article key={m.id} style={styles.momentCard}>
               {m.image_url && (
-                <img src={m.image_url} alt={m.title} style={styles.momentImage} />
-              )}
+  <img
+    src={m.image_url}
+    alt={m.title}
+    style={{
+      ...styles.momentImage,
+      cursor: "pointer"
+    }}
+    onClick={() => {
+      console.log("Клік по фото:", m);
+      setGalleryIndex(
+        moments
+          .filter(item => item.image_url)
+          .findIndex(item => item.id === m.id)
+      );
+    }}
+  />
+)} 
 
               <div style={styles.momentContent}>
                 <div style={styles.momentDate}>📅 {m.moment_date}</div>
