@@ -533,7 +533,6 @@ function startEditMoment(moment) {
           ))}
         </div>
       )}
-                )}
 
       {galleryIndex !== null && (() => {
         const galleryMoments = moments.filter(item => item.image_url);
