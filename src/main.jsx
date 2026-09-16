@@ -340,6 +340,7 @@ function MomentsPage({
   const [momentDate, setMomentDate] = useState(new Date().toISOString().split("T")[0]);
   const [file, setFile] = useState(null);
   const [editingMoment, setEditingMoment] = useState(null);
+  const [galleryIndex, setGalleryIndex] = useState(null);
 function startEditMoment(moment) {
   setEditingMoment(moment);
   setTitle(moment.title || "");
