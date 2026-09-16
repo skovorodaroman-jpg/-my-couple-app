@@ -299,12 +299,20 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) 
           {moments.map(m => (
             <article key={m.id} style={styles.momentCard}>
               {m.image_url && (
-                <img
-                  src={m.image_url}
-                  alt={m.title}
-                  style={styles.momentImage}
-                />
-              )}
+  <img
+    src={m.image_url}
+    alt={m.title}
+    style={{
+      ...styles.momentImage,
+      cursor: "pointer"
+    }}
+    onClick={() => {
+      const galleryMoments = moments.filter(item => item.image_url);
+      const index = galleryMoments.findIndex(item => item.id === m.id);
+      setGalleryIndex(index);
+    }}
+  />
+)}
 
               <div style={styles.momentContent}>
                 <div style={styles.momentDate}>📅 {m.moment_date}</div>
@@ -525,6 +533,80 @@ function startEditMoment(moment) {
           ))}
         </div>
       )}
+                )}
+
+      {galleryIndex !== null && (() => {
+        const galleryMoments = moments.filter(item => item.image_url);
+        const currentMoment = galleryMoments[galleryIndex];
+
+        if (!currentMoment) return null;
+
+        return (
+          <div
+            style={styles.galleryOverlay}
+            onClick={() => setGalleryIndex(null)}
+          >
+            <div
+              style={styles.galleryBox}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                style={styles.galleryClose}
+                onClick={() => setGalleryIndex(null)}
+              >
+                ✕
+              </button>
+
+              <button
+                type="button"
+                style={styles.galleryPrev}
+                onClick={() =>
+                  setGalleryIndex(prev =>
+                    prev > 0 ? prev - 1 : galleryMoments.length - 1
+                  )
+                }
+              >
+                ‹
+              </button>
+
+              <img
+                src={currentMoment.image_url}
+                alt={currentMoment.title}
+                style={styles.galleryImage}
+              />
+
+              <button
+                type="button"
+                style={styles.galleryNext}
+                onClick={() =>
+                  setGalleryIndex(prev =>
+                    prev < galleryMoments.length - 1 ? prev + 1 : 0
+                  )
+                }
+              >
+                ›
+              </button>
+
+              <div style={styles.galleryInfo}>
+                <div style={styles.galleryDate}>
+                  📅 {currentMoment.moment_date}
+                </div>
+
+                <div style={styles.galleryTitle}>
+                  {currentMoment.title}
+                </div>
+
+                {currentMoment.description && (
+                  <div style={styles.galleryDescription}>
+                    {currentMoment.description}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()
     </div>
   );
 }
@@ -1732,6 +1814,121 @@ eventDays:{
   color:"#bd5878",
   fontSize:"11px",
   fontWeight:"800"
+},
+
+/* ❤️ ГАЛЕРЕЯ МОМЕНТІВ */
+
+galleryOverlay:{
+  position:"fixed",
+  inset:0,
+  zIndex:9999,
+  background:"rgba(35,20,26,.94)",
+  display:"flex",
+  alignItems:"center",
+  justifyContent:"center",
+  padding:"20px",
+  boxSizing:"border-box"
+},
+
+galleryBox:{
+  position:"relative",
+  width:"100%",
+  maxWidth:"900px",
+  maxHeight:"95vh",
+  display:"flex",
+  flexDirection:"column",
+  alignItems:"center",
+  justifyContent:"center"
+},
+
+galleryImage:{
+  display:"block",
+  width:"auto",
+  maxWidth:"100%",
+  maxHeight:"72vh",
+  objectFit:"contain",
+  borderRadius:"18px",
+  boxShadow:"0 15px 50px rgba(0,0,0,.35)"
+},
+
+galleryClose:{
+  position:"absolute",
+  top:"-10px",
+  right:"-5px",
+  width:"42px",
+  height:"42px",
+  border:"none",
+  borderRadius:"50%",
+  background:"rgba(255,255,255,.95)",
+  color:"#5c3542",
+  fontSize:"22px",
+  fontWeight:"700",
+  cursor:"pointer",
+  zIndex:3
+},
+
+galleryPrev:{
+  position:"absolute",
+  left:"10px",
+  top:"50%",
+  transform:"translateY(-50%)",
+  width:"46px",
+  height:"46px",
+  border:"none",
+  borderRadius:"50%",
+  background:"rgba(255,255,255,.92)",
+  color:"#5c3542",
+  fontSize:"24px",
+  fontWeight:"700",
+  cursor:"pointer",
+  zIndex:3
+},
+
+galleryNext:{
+  position:"absolute",
+  right:"10px",
+  top:"50%",
+  transform:"translateY(-50%)",
+  width:"46px",
+  height:"46px",
+  border:"none",
+  borderRadius:"50%",
+  background:"rgba(255,255,255,.92)",
+  color:"#5c3542",
+  fontSize:"24px",
+  fontWeight:"700",
+  cursor:"pointer",
+  zIndex:3
+},
+
+galleryInfo:{
+  width:"100%",
+  maxWidth:"700px",
+  marginTop:"14px",
+  padding:"14px 18px",
+  boxSizing:"border-box",
+  borderRadius:"16px",
+  background:"rgba(255,255,255,.96)",
+  textAlign:"center"
+},
+
+galleryDate:{
+  fontSize:"12px",
+  color:"#a08089",
+  marginBottom:"4px"
+},
+
+galleryTitle:{
+  fontSize:"18px",
+  fontWeight:"800",
+  color:"#3b2630",
+  marginBottom:"5px"
+},
+
+galleryDescription:{
+  fontSize:"13px",
+  lineHeight:"1.5",
+  color:"#806c73"
 }
 };
 
