@@ -1729,50 +1729,110 @@ async function updateDream(e){
     ✨ Наші мрії
   </div>
 
-  {dreams.map(dream=>(
-            <article
-              key={dream.id}
+  {dreams.filter(dream => !dream.completed).map(dream=>(
+          ))}
+        </div>
+
+        {dreams.some(dream => dream.completed) && (
+          <div style={{marginTop:"28px"}}>
+
+            <div
               style={{
-                ...styles.momentCard,
-                opacity:dream.completed ? 0.7 : 1
+                fontSize:"18px",
+                fontWeight:"800",
+                color:"#3b2630",
+                marginBottom:"12px"
               }}
             >
+              ❤️ Здійснено
+            </div>
 
-              <div style={styles.momentContent}>
+            <div style={styles.momentsList}>
+              {dreams
+                .filter(dream => dream.completed)
+                .map(dream => (
+                  <article
+                    key={dream.id}
+                    style={{
+                      ...styles.momentCard,
+                      opacity:0.7
+                    }}
+                  >
 
-                <div
-                  style={{
-                    fontSize:"28px",
-                    marginBottom:"8px"
-                  }}
-                >
-                  {dream.completed ? "✅" : "✨"}
-                </div>
+                    <div style={styles.momentContent}>
 
-                <h3
-                  style={{
-                    ...styles.momentTitle,
-                    textDecoration:dream.completed
-                      ? "line-through"
-                      : "none"
-                  }}
-                >
-                  {dream.title}
-                </h3>
+                      <div
+                        style={{
+                          fontSize:"28px",
+                          marginBottom:"8px"
+                        }}
+                      >
+                        ✅
+                      </div>
 
-                {dream.description && (
-                  <p style={styles.momentDescription}>
-                    {dream.description}
-                  </p>
-                )}
+                      <h3
+                        style={{
+                          ...styles.momentTitle,
+                          textDecoration:"line-through"
+                        }}
+                      >
+                        {dream.title}
+                      </h3>
 
-                <div
-                  style={{
-                    display:"flex",
-                    gap:"8px",
-                    marginTop:"14px",
-                    flexWrap:"wrap"
-                  }}
+                      {dream.description && (
+                        <p style={styles.momentDescription}>
+                          {dream.description}
+                        </p>
+                      )}
+
+                      <div
+                        style={{
+                          display:"flex",
+                          gap:"8px",
+                          marginTop:"14px",
+                          flexWrap:"wrap"
+                        }}
+                      >
+
+                        <button
+                          type="button"
+                          onClick={() => setEditingDream({
+                            id:dream.id,
+                            title:dream.title,
+                            description:dream.description || ""
+                          })}
+                          style={styles.secondaryButton}
+                        >
+                          ✏️ Редагувати
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleDream(dream)}
+                          style={styles.secondaryButton}
+                        >
+                          ↩️ Повернути
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => deleteDream(dream.id)}
+                          style={styles.deleteButton}
+                        >
+                          🗑️ Видалити
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  </article>
+                ))}
+            </div>
+
+          </div>
+        )}
+      )}
                 >
                   <button
   type="button"
