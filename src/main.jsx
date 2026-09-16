@@ -1735,7 +1735,7 @@ async function updateDream(e){
       Здійснено
     </div>
   </div>
-</PageWrapper>
+
       <button
         type="button"
         style={styles.addMomentButton}
