@@ -284,7 +284,60 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) 
   return <div>
     <section style={styles.hero}><div style={styles.heroDecor}>❤️</div><p style={styles.eyebrow}>НАША ІСТОРІЯ</p><h1 style={styles.heroTitle}>Разом — це<br />найкраще ❤️</h1><p style={styles.heroText}>Кожен день поруч —<br />ще одна маленька<br />історія нашого кохання.</p><div style={styles.names}>{userName}<span> ❤️ </span>{partnerName || "Даша"}</div></section>
     <section style={styles.counterCard}><div style={styles.counterTitle}>Ми разом вже</div>{loveTime ? <div style={styles.counterGrid}><CounterItem value={loveTime.years} label="років" /><CounterItem value={loveTime.months} label="місяців" /><CounterItem value={loveTime.days} label="днів" /><CounterItem value={loveTime.hours} label="годин" /><CounterItem value={loveTime.minutes} label="хвилин" /><CounterItem value={loveTime.seconds} label="секунд" /></div> : <div style={styles.noCounter}>❤️</div>}<div style={styles.counterHeart}>❤️</div></section>
+<div style={styles.homeSectionTitle}>
+  ❤️ НАШЕ
+</div>
+<div style={styles.wishCard}>
+  <div style={styles.wishIcon}>💭</div>
 
+  <div style={styles.wishTitle}>
+    Побажання на сьогодні
+  </div>
+
+  <div style={styles.wishText}>
+    {dailyWishes[new Date().getDate() % dailyWishes.length]}
+  </div>
+
+  <div style={styles.wishHeart}>
+    ❤️
+  </div>
+</div>
+<div style={styles.homeMenuGrid}>
+
+  <button
+    type="button"
+    style={styles.homeMenuCard}
+    onClick={() => setPage("moments")}
+  >
+    <div style={styles.homeMenuIcon}>📸</div>
+    <div style={styles.homeMenuTitle}>Наші моменти</div>
+    <div style={styles.homeMenuText}>Фото та спогади</div>
+    <div style={styles.homeMenuArrow}>→</div>
+  </button>
+
+  <button
+    type="button"
+    style={styles.homeMenuCard}
+    onClick={() => setPage("calendar")}
+  >
+    <div style={styles.homeMenuIcon}>📅</div>
+    <div style={styles.homeMenuTitle}>Календар</div>
+    <div style={styles.homeMenuText}>Важливі дати</div>
+    <div style={styles.homeMenuArrow}>→</div>
+  </button>
+
+  <button
+    type="button"
+    style={styles.homeMenuCard}
+    onClick={() => setPage("dreams")}
+  >
+    <div style={styles.homeMenuIcon}>✨</div>
+    <div style={styles.homeMenuTitle}>Наші мрії</div>
+    <div style={styles.homeMenuText}>Те, що здійснимо разом</div>
+    <div style={styles.homeMenuArrow}>→</div>
+  </button>
+
+</div>
     
       {moments.length === 0 ? (
         <div style={styles.emptyMoments}>
@@ -333,7 +386,23 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) 
     </div>
   
 } 
-
+const dailyWishes = [
+  "Нехай сьогодні у тебе буде якомога більше приводів усміхатися ❤️",
+  "Пам’ятай: десь є людина, яка дуже тебе любить ❤️",
+  "Нехай цей день подарує тобі щось прекрасне 🌸",
+  "Ти заслуговуєш на найтепліші обійми сьогодні 🤗❤️",
+  "Нехай сьогодні все складається саме так, як ти хочеш ✨",
+  "Усміхнися — твоя усмішка робить цей світ красивішим ❤️",
+  "Нехай сьогодні тебе оточують любов, тепло і турбота 💕",
+  "Я хочу, щоб сьогодні ти була щаслива навіть через маленькі речі 🌷",
+  "Нехай цей день стане ще однією красивою сторінкою нашої історії 📖❤️",
+  "Дякую, що ти є в моєму житті. Гарного тобі дня ❤️",
+  "Нехай сьогодні тебе чекає щось дуже приємне 🌹",
+  "Пам’ятай, що ти для мене особлива ❤️",
+  "Бажаю тобі сьогодні багато посмішок і жодної зайвої тривоги 🥰",
+  "Нехай цей день буде ніжним до тебе 💗",
+  "Що б сьогодні не сталося — пам’ятай, що я поруч ❤️"
+];
 function MomentsPage({
   moments = [],
   setPage,
@@ -1945,6 +2014,94 @@ galleryDescription:{
   lineHeight:"1.5",
   color:"#806c73"
 }
+homeSectionTitle:{
+  fontSize:"14px",
+  fontWeight:"800",
+  color:"#9a6575",
+  letterSpacing:"1.5px",
+  marginTop:"28px",
+  marginBottom:"14px"
+},
+
+homeMenuGrid:{
+  display:"grid",
+  gridTemplateColumns:"1fr",
+  gap:"12px"
+},
+
+homeMenuCard:{
+  position:"relative",
+  width:"100%",
+  border:"none",
+  borderRadius:"20px",
+  padding:"18px",
+  background:"#fff",
+  boxShadow:"0 5px 20px rgba(0,0,0,.05)",
+  textAlign:"left",
+  cursor:"pointer",
+  boxSizing:"border-box"
+},
+
+homeMenuIcon:{
+  fontSize:"28px",
+  marginBottom:"8px"
+},
+
+homeMenuTitle:{
+  fontSize:"17px",
+  fontWeight:"800",
+  color:"#3b2630",
+  marginBottom:"4px"
+},
+
+homeMenuText:{
+  fontSize:"13px",
+  color:"#806c73"
+},
+
+homeMenuArrow:{
+  position:"absolute",
+  right:"18px",
+  top:"50%",
+  transform:"translateY(-50%)",
+  fontSize:"22px",
+  color:"#c7798d",
+  fontWeight:"700"
+},
+wishCard:{
+  marginTop:"18px",
+  padding:"22px 20px",
+  borderRadius:"22px",
+  background:"#fff5f7",
+  textAlign:"center",
+  boxSizing:"border-box",
+  boxShadow:"0 5px 20px rgba(0,0,0,.04)"
+},
+
+wishIcon:{
+  fontSize:"30px",
+  marginBottom:"8px"
+},
+
+wishTitle:{
+  fontSize:"17px",
+  fontWeight:"800",
+  color:"#3b2630",
+  marginBottom:"10px"
+},
+
+wishText:{
+  fontSize:"14px",
+  lineHeight:"1.6",
+  color:"#806c73",
+  maxWidth:"500px",
+  margin:"0 auto"
+},
+
+wishHeart:{
+  marginTop:"12px",
+  fontSize:"18px"
+},
 };
 
 const rootElement=document.getElementById("root");
