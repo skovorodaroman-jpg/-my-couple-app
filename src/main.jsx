@@ -1474,6 +1474,11 @@ function DreamsPage({couple}){
   const [description,setDescription]=useState("");
   const [loading,setLoading]=useState(false);
   const [editingDream,setEditingDream]=useState(null);
+  const completedDreams = dreams.filter(dream => dream.completed).length;
+const totalDreams = dreams.length;
+const dreamProgress = totalDreams > 0
+  ? Math.round((completedDreams / totalDreams) * 100)
+  : 0;
 
   async function loadDreams(){
     if(!couple?.id)return;
@@ -1586,7 +1591,151 @@ async function updateDream(e){
       title="Наші мрії"
       subtitle="Те, що ми хочемо здійснити"
     >
+<div
+  style={{
+    display:"grid",
+    gridTemplateColumns:"1fr 1fr",
+    gap:"12px",
+    marginBottom:"18px"
+  }}
+>
+  <div
+    <div
+  style={{
+    background:"#fff",
+    borderRadius:"20px",
+    padding:"18px",
+    marginBottom:"18px",
+    boxShadow:"0 5px 20px rgba(0,0,0,.04)"
+  }}
+>
+  <div
+    style={{
+      display:"flex",
+      justifyContent:"space-between",
+      alignItems:"center",
+      marginBottom:"10px"
+    }}
+  >
+    <div
+      style={{
+        fontSize:"14px",
+        fontWeight:"800",
+        color:"#3b2630"
+      }}
+    >
+      💕 Наш прогрес
+    </div>
 
+    <div
+      style={{
+        fontSize:"14px",
+        fontWeight:"800",
+        color:"#bd5878"
+      }}
+    >
+      {dreamProgress}%
+    </div>
+  </div>
+
+  <div
+    style={{
+      width:"100%",
+      height:"10px",
+      background:"#f5e6ea",
+      borderRadius:"999px",
+      overflow:"hidden"
+    }}
+  >
+    <div
+      style={{
+        width:`${dreamProgress}%`,
+        height:"100%",
+        background:"#bd5878",
+        borderRadius:"999px",
+        transition:"width .4s ease"
+      }}
+    />
+  </div>
+
+  <div
+    style={{
+      textAlign:"center",
+      fontSize:"12px",
+      color:"#806c73",
+      marginTop:"9px"
+    }}
+  >
+    Кожна здійснена мрія — ще одна наша маленька перемога ❤️
+  </div>
+</div>
+    style={{
+      background:"#fff5f7",
+      borderRadius:"20px",
+      padding:"18px",
+      textAlign:"center",
+      boxShadow:"0 5px 20px rgba(0,0,0,.04)"
+    }}
+  >
+    <div style={{fontSize:"28px",marginBottom:"6px"}}>
+      ✨
+    </div>
+
+    <div
+      style={{
+        fontSize:"26px",
+        fontWeight:"800",
+        color:"#bd5878"
+      }}
+    >
+      {dreams.filter(dream=>!dream.completed).length}
+    </div>
+
+    <div
+      style={{
+        fontSize:"13px",
+        color:"#806c73",
+        marginTop:"4px"
+      }}
+    >
+      Наші мрії
+    </div>
+  </div>
+
+  <div
+    style={{
+      background:"#fff",
+      borderRadius:"20px",
+      padding:"18px",
+      textAlign:"center",
+      boxShadow:"0 5px 20px rgba(0,0,0,.04)"
+    }}
+  >
+    <div style={{fontSize:"28px",marginBottom:"6px"}}>
+      ❤️
+    </div>
+
+    <div
+      style={{
+        fontSize:"26px",
+        fontWeight:"800",
+        color:"#bd5878"
+      }}
+    >
+      {dreams.filter(dream=>dream.completed).length}
+    </div>
+
+    <div
+      style={{
+        fontSize:"13px",
+        color:"#806c73",
+        marginTop:"4px"
+      }}
+    >
+      Здійснено
+    </div>
+  </div>
+</div>
       <button
         type="button"
         style={styles.addMomentButton}
