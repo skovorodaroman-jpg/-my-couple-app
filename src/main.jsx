@@ -422,7 +422,9 @@ function startEditMoment(moment) {
 
       {showForm && (
         <form style={styles.momentForm} onSubmit={handleSubmit}>
-          <div style={styles.formTitle}>Новий момент 💕</div>
+          <div style={styles.formTitle}>
+  {editingMoment ? "Редагувати момент ✏️" : "Новий момент 💕"}
+</div>
 
           <label style={styles.formLabel}>❤️ Назва моменту</label>
           <input
@@ -462,11 +464,17 @@ function startEditMoment(moment) {
 
           {file && <div style={styles.selectedFile}>📎 {file.name}</div>}
 
-          <button type="submit" style={styles.saveMomentButton} disabled={momentLoading}>
-            {momentLoading ? "Зберігаю... ❤️" : "💾 Зберегти момент"}
-          </button>
-        </form>
-      )}
+          <button
+  type="submit"
+  style={styles.saveMomentButton}
+  disabled={momentLoading}
+>
+  {momentLoading
+    ? "Зберігаю... ❤️"
+    : editingMoment
+      ? "✏️ Зберегти зміни"
+      : "💾 Зберегти момент"}
+</button>
 
       {moments.length === 0 ? (
         <div style={styles.emptyMoments}>
