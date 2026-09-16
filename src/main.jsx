@@ -1581,105 +1581,64 @@ async function updateDream(e){
   }
 
   return (
-    <PageWrapper
-      icon="✨"
-      title="Наші мрії"
-      subtitle="Те, що ми хочемо здійснити"
-    >
-<div
-
-  style={{
-    background:"#fff",
-    borderRadius:"20px",
-    padding:"18px",
-    marginBottom:"18px",
-    boxShadow:"0 5px 20px rgba(0,0,0,.04)"
-  }}
->
-  <div
-    style={{
-      display:"flex",
-      justifyContent:"space-between",
-      alignItems:"center",
-      marginBottom:"10px"
-    }}
+  <PageWrapper
+    icon="✨"
+    title="Наші мрії"
+    subtitle="Те, що ми хочемо здійснити"
   >
-    <div
-      style={{
-        fontSize:"14px",
-        fontWeight:"800",
-        color:"#3b2630"
-      }}
+
+    <button
+      type="button"
+      style={styles.addMomentButton}
+      onClick={() => setShowForm(prev => !prev)}
     >
-      💕 Наш прогрес
-    </div>
+      {showForm ? "✕ Скасувати" : "➕ Додати мрію"}
+    </button>
 
-    <div
-      style={{
-        fontSize:"14px",
-        fontWeight:"800",
-        color:"#bd5878"
-      }}
-    >
-      {dreamProgress}%
-    </div>
-  </div>
-
-  <div
-
-    
-      <button
-        type="button"
-        style={styles.addMomentButton}
-        onClick={()=>setShowForm(prev=>!prev)}
+    {showForm && (
+      <form
+        onSubmit={addDream}
+        style={styles.momentForm}
       >
-        {showForm ? "✕ Скасувати" : "➕ Додати мрію"}
-      </button>
+        <label style={styles.label}>
+          ✨ Назва мрії
+        </label>
 
-      {showForm && (
-        <form
-          onSubmit={addDream}
-          style={styles.momentForm}
+        <input
+          type="text"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="Наприклад: Поїхати разом у Париж ❤️"
+          style={styles.input}
+          maxLength={100}
+          required
+        />
+
+        <label style={styles.label}>
+          💭 Опис
+        </label>
+
+        <textarea
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          placeholder="Опиши нашу мрію..."
+          style={{
+            ...styles.input,
+            minHeight: "100px",
+            resize: "vertical"
+          }}
+          maxLength={500}
+        />
+
+        <button
+          type="submit"
+          style={styles.saveMomentButton}
+          disabled={loading}
         >
-          <label style={styles.label}>
-            ✨ Назва мрії
-          </label>
-
-          <input
-            type="text"
-            value={title}
-            onChange={e=>setTitle(e.target.value)}
-            placeholder="Наприклад: Поїхати разом у Париж"
-            style={styles.input}
-            maxLength={100}
-            required
-          />
-
-          <label style={styles.label}>
-            💭 Опис
-          </label>
-
-          <textarea
-            value={description}
-            onChange={e=>setDescription(e.target.value)}
-            placeholder="Розкажіть трохи більше про вашу мрію..."
-            style={{
-              ...styles.input,
-              minHeight:"100px",
-              resize:"vertical"
-            }}
-            maxLength={500}
-          />
-
-          <button
-            type="submit"
-            style={styles.saveMomentButton}
-            disabled={loading}
-          >
-            {loading ? "Зберігаю... ❤️" : "💾 Зберегти мрію"}
-          </button>
-        </form>
-      )}
+          {loading ? "Зберігаю... ❤️" : "💾 Зберегти мрію"}
+        </button>
+      </form>
+    )}
 {editingDream && (
   <form
     onSubmit={updateDream}
