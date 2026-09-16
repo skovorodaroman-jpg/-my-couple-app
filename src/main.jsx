@@ -252,8 +252,12 @@ async function deleteMoment(moment) {
 
   const isAdmin = profile?.role === "admin";
   return <div style={styles.app}>
-    <header style={styles.header}><div><div style={styles.logo}>My Couple</div><div style={styles.subtitle}>наше маленьке місце ❤️</div></div><button style={styles.settingsButton} onClick={() => setPage("settings")}>⚙️</button></header>
-    <main style={styles.content}>
+    <header style={styles.header}>
+  <div>
+    <div style={styles.logo}>My Couple</div>
+    <div style={styles.subtitle}>наше маленьке місце ❤️</div>
+  </div>
+</header><main style={styles.content}>
       {page === "home" && <HomePage profile={profile} couple={couple} partnerName={partnerName} loveTime={loveTime} setPage={setPage} moments={moments} />}
 {page === "moments" && (
   <MomentsPage
@@ -339,50 +343,7 @@ function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) 
 
 </div>
     
-      {moments.length === 0 ? (
-        <div style={styles.emptyMoments}>
-          <div style={styles.emptyMomentsIcon}>📸</div>
-          <div style={styles.emptyMomentsTitle}>Тут поки порожньо</div>
-          <div style={styles.emptyMomentsText}>
-            Додайте ваш перший спільний спогад ❤️
-          </div>
-        </div>
-      ) : (
-        <div style={styles.momentsList}>
-          {moments.map(m => (
-            <article key={m.id} style={styles.momentCard}>
-              {m.image_url && (
-  <img
-    src={m.image_url}
-    alt={m.title}
-    style={{
-      ...styles.momentImage,
-      cursor: "pointer"
-    }}
-    onClick={() => {
-      const galleryMoments = moments.filter(item => item.image_url);
-      const index = galleryMoments.findIndex(item => item.id === m.id);
-      setGalleryIndex(index);
-    }}
-  />
-)}
-
-              <div style={styles.momentContent}>
-                <div style={styles.momentDate}>📅 {m.moment_date}</div>
-
-                <h3 style={styles.momentTitle}>{m.title}</h3>
-
-                {m.description && (
-                  <p style={styles.momentDescription}>
-                    {m.description}
-                  </p>
-                )}
-
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+      
     </div>
   
 } 
