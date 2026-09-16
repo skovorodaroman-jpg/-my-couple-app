@@ -606,7 +606,7 @@ function startEditMoment(moment) {
             </div>
           </div>
         );
-      })()
+      })()}
     </div>
   );
 }
