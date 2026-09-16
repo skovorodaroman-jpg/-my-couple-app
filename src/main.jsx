@@ -1473,6 +1473,7 @@ function DreamsPage({couple}){
   const [title,setTitle]=useState("");
   const [description,setDescription]=useState("");
   const [loading,setLoading]=useState(false);
+  const [editingDream,setEditingDream]=useState(null);
 
   async function loadDreams(){
     if(!couple?.id)return;
@@ -1483,6 +1484,7 @@ function DreamsPage({couple}){
       .eq("couple_id",couple.id)
       .order("completed",{ascending:true})
       .order("created_at",{ascending:false});
+    
 
     if(error){
       console.error("❌ Помилка завантаження мрій:",error);
@@ -1525,7 +1527,29 @@ function DreamsPage({couple}){
 
     loadDreams();
   }
+async function updateDream(e){
+  e.preventDefault();
 
+  if(!editingDream?.id || !editingDream.title.trim()) return;
+
+  const {error}=await supabase
+    .from("dreams")
+    .update({
+      title:editingDream.title.trim(),
+      description:editingDream.description?.trim() || null
+    })
+    .eq("id",editingDream.id);
+
+  if(error){
+    console.error("❌ Помилка редагування мрії:",error);
+    alert("Не вдалося зберегти зміни 😔");
+    return;
+  }
+
+  setEditingDream(null);
+  loadDreams();
+}
+  
   async function toggleDream(dream){
     const {error}=await supabase
       .from("dreams")
@@ -1615,7 +1639,73 @@ function DreamsPage({couple}){
           </button>
         </form>
       )}
+{editingDream && (
+  <form
+    onSubmit={updateDream}
+    style={styles.momentForm}
+  >
+    <label style={styles.label}>
+      ✨ Назва мрії
+    </label>
 
+    <input
+      type="text"
+      value={editingDream.title}
+      onChange={e =>
+        setEditingDream({
+          ...editingDream,
+          title:e.target.value
+        })
+      }
+      style={styles.input}
+      maxLength={100}
+      required
+    />
+
+    <label style={styles.label}>
+      💭 Опис
+    </label>
+
+    <textarea
+      value={editingDream.description}
+      onChange={e =>
+        setEditingDream({
+          ...editingDream,
+          description:e.target.value
+        })
+      }
+      style={{
+        ...styles.input,
+        minHeight:"100px",
+        resize:"vertical"
+      }}
+      maxLength={500}
+    />
+
+    <div
+      style={{
+        display:"flex",
+        gap:"8px",
+        flexWrap:"wrap"
+      }}
+    >
+      <button
+        type="submit"
+        style={styles.saveMomentButton}
+      >
+        💾 Зберегти зміни
+      </button>
+
+      <button
+        type="button"
+        style={styles.secondaryButton}
+        onClick={()=>setEditingDream(null)}
+      >
+        ✕ Скасувати
+      </button>
+    </div>
+  </form>
+)}
       {dreams.length===0 ? (
         <div style={styles.emptyMoments}>
           <div style={styles.emptyMomentsIcon}>🌙</div>
@@ -1675,6 +1765,17 @@ function DreamsPage({couple}){
                     flexWrap:"wrap"
                   }}
                 >
+                  <button
+  type="button"
+  onClick={()=>setEditingDream({
+    id:dream.id,
+    title:dream.title,
+    description:dream.description || ""
+  })}
+  style={styles.secondaryButton}
+>
+  ✏️ Редагувати
+</button>
 
                   <button
                     type="button"
