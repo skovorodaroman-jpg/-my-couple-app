@@ -1675,13 +1675,6 @@ async function updateDream(e){
       textAlign:"center",
       boxShadow:"0 5px 20px rgba(0,0,0,.04)"
     }}
-  style={{
-      background:"#fff5f7",
-      borderRadius:"20px",
-      padding:"18px",
-      textAlign:"center",
-      boxShadow:"0 5px 20px rgba(0,0,0,.04)"
-    }}
   
     
     <div style={{fontSize:"28px",marginBottom:"6px"}}>
