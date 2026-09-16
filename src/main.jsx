@@ -1467,7 +1467,245 @@ style={styles.deleteEventButton}
     </div>
   );
 }
-function DreamsPage(){return <PageWrapper icon="✨" title="Наші мрії" subtitle="Те, що ми хочемо здійснити"><EmptyState icon="🌙" title="Мрії попереду" text="Тут буде наш спільний список мрій та цілей."/></PageWrapper>}
+function DreamsPage({couple}){
+  const [dreams,setDreams]=useState([]);
+  const [showForm,setShowForm]=useState(false);
+  const [title,setTitle]=useState("");
+  const [description,setDescription]=useState("");
+  const [loading,setLoading]=useState(false);
+
+  async function loadDreams(){
+    if(!couple?.id)return;
+
+    const {data,error}=await supabase
+      .from("dreams")
+      .select("*")
+      .eq("couple_id",couple.id)
+      .order("completed",{ascending:true})
+      .order("created_at",{ascending:false});
+
+    if(error){
+      console.error("❌ Помилка завантаження мрій:",error);
+      return;
+    }
+
+    setDreams(data||[]);
+  }
+
+  useEffect(()=>{
+    loadDreams();
+  },[couple?.id]);
+
+  async function addDream(e){
+    e.preventDefault();
+
+    if(!couple?.id || !title.trim())return;
+
+    setLoading(true);
+
+    const {error}=await supabase
+      .from("dreams")
+      .insert({
+        couple_id:couple.id,
+        title:title.trim(),
+        description:description.trim()||null
+      });
+
+    if(error){
+      console.error("❌ Помилка додавання мрії:",error);
+      alert("Не вдалося додати мрію 😔");
+      setLoading(false);
+      return;
+    }
+
+    setTitle("");
+    setDescription("");
+    setShowForm(false);
+    setLoading(false);
+
+    loadDreams();
+  }
+
+  async function toggleDream(dream){
+    const {error}=await supabase
+      .from("dreams")
+      .update({completed:!dream.completed})
+      .eq("id",dream.id);
+
+    if(error){
+      console.error("❌ Помилка зміни статусу:",error);
+      return;
+    }
+
+    loadDreams();
+  }
+
+  async function deleteDream(id){
+    if(!confirm("Видалити цю мрію? ❤️"))return;
+
+    const {error}=await supabase
+      .from("dreams")
+      .delete()
+      .eq("id",id);
+
+    if(error){
+      console.error("❌ Помилка видалення:",error);
+      return;
+    }
+
+    loadDreams();
+  }
+
+  return (
+    <PageWrapper
+      icon="✨"
+      title="Наші мрії"
+      subtitle="Те, що ми хочемо здійснити"
+    >
+
+      <button
+        type="button"
+        style={styles.addMomentButton}
+        onClick={()=>setShowForm(prev=>!prev)}
+      >
+        {showForm ? "✕ Скасувати" : "➕ Додати мрію"}
+      </button>
+
+      {showForm && (
+        <form
+          onSubmit={addDream}
+          style={styles.momentForm}
+        >
+          <label style={styles.label}>
+            ✨ Назва мрії
+          </label>
+
+          <input
+            type="text"
+            value={title}
+            onChange={e=>setTitle(e.target.value)}
+            placeholder="Наприклад: Поїхати разом у Париж"
+            style={styles.input}
+            maxLength={100}
+            required
+          />
+
+          <label style={styles.label}>
+            💭 Опис
+          </label>
+
+          <textarea
+            value={description}
+            onChange={e=>setDescription(e.target.value)}
+            placeholder="Розкажіть трохи більше про вашу мрію..."
+            style={{
+              ...styles.input,
+              minHeight:"100px",
+              resize:"vertical"
+            }}
+            maxLength={500}
+          />
+
+          <button
+            type="submit"
+            style={styles.saveMomentButton}
+            disabled={loading}
+          >
+            {loading ? "Зберігаю... ❤️" : "💾 Зберегти мрію"}
+          </button>
+        </form>
+      )}
+
+      {dreams.length===0 ? (
+        <div style={styles.emptyMoments}>
+          <div style={styles.emptyMomentsIcon}>🌙</div>
+
+          <div style={styles.emptyMomentsTitle}>
+            Мрії попереду
+          </div>
+
+          <div style={styles.emptyMomentsText}>
+            Додайте вашу першу спільну мрію ❤️
+          </div>
+        </div>
+      ) : (
+        <div style={styles.momentsList}>
+          {dreams.map(dream=>(
+            <article
+              key={dream.id}
+              style={{
+                ...styles.momentCard,
+                opacity:dream.completed ? 0.7 : 1
+              }}
+            >
+
+              <div style={styles.momentContent}>
+
+                <div
+                  style={{
+                    fontSize:"28px",
+                    marginBottom:"8px"
+                  }}
+                >
+                  {dream.completed ? "✅" : "✨"}
+                </div>
+
+                <h3
+                  style={{
+                    ...styles.momentTitle,
+                    textDecoration:dream.completed
+                      ? "line-through"
+                      : "none"
+                  }}
+                >
+                  {dream.title}
+                </h3>
+
+                {dream.description && (
+                  <p style={styles.momentDescription}>
+                    {dream.description}
+                  </p>
+                )}
+
+                <div
+                  style={{
+                    display:"flex",
+                    gap:"8px",
+                    marginTop:"14px",
+                    flexWrap:"wrap"
+                  }}
+                >
+
+                  <button
+                    type="button"
+                    onClick={()=>toggleDream(dream)}
+                    style={styles.secondaryButton}
+                  >
+                    {dream.completed
+                      ? "↩️ Повернути"
+                      : "✅ Здійснено"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={()=>deleteDream(dream.id)}
+                    style={styles.deleteButton}
+                  >
+                    🗑️ Видалити
+                  </button>
+
+                </div>
+
+              </div>
+
+            </article>
+          ))}
+        </div>
+      )}
+
+    </PageWrapper>
+  );
+                }
 function PageWrapper({icon,title,subtitle,children}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>{icon}</div><h1 style={styles.pageTitle}>{title}</h1><p style={styles.pageSubtitle}>{subtitle}</p></section>{children}</div>}function EmptyState({icon,title,text}){return <div style={styles.emptyState}><div style={styles.emptyIcon}>{icon}</div><h3 style={styles.emptyTitle}>{title}</h3><p style={styles.emptyText}>{text}</p></div>}
 function SettingsPage({profile,couple,isAdmin,startDate,setStartDate,partnerName,setPartnerName,saveSettings,saving,logout}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>⚙️</div><h1 style={styles.pageTitle}>Налаштування</h1><p style={styles.pageSubtitle}>Налаштування нашої пари</p></section>{isAdmin?<section style={styles.settingsCard}><div style={styles.settingsTop}><div style={styles.settingsIcon}>👑</div><div><h2 style={styles.settingsTitle}>Налаштування адміністратора</h2><p style={styles.settingsText}>Тільки адміністратор може змінювати ці налаштування.</p></div></div><form onSubmit={saveSettings} style={styles.form}><label style={styles.label}>❤️ Початок наших стосунків</label><input type="datetime-local" value={startDate} onChange={e=>setStartDate(e.target.value)} style={styles.input} required/><label style={styles.label}>👩 Ім'я коханої</label><input type="text" value={partnerName} onChange={e=>setPartnerName(e.target.value)} placeholder="Наприклад: Даша" style={styles.input} maxLength={40} required/><button type="submit" style={styles.primaryButton} disabled={saving}>{saving?"Зберігаємо...":"Зберегти ❤️"}</button></form></section>:<section style={styles.infoCard}><div style={styles.bigEmoji}>🔒</div><h3 style={styles.infoTitle}>Налаштування доступні адміну</h3><p style={styles.infoText}>Дату початку стосунків та інші важливі параметри може змінювати тільки адміністратор.</p></section>}<section style={styles.accountCard}><div style={styles.accountTitle}>👤 Мій профіль</div><div style={styles.accountRow}><span>Ім'я</span><strong>{profile?.name||"Користувач"}</strong></div><div style={styles.accountRow}><span>Роль</span><strong>{isAdmin?"👑 Адміністратор":"❤️ Учасник пари"}</strong></div><div style={styles.accountRow}><span>Кохана</span><strong>{partnerName||"Даша"}</strong></div>{couple?.invite_code&&<div style={styles.accountRow}><span>Код пари</span><strong>{couple.invite_code}</strong></div>}</section><button style={styles.logoutButton} onClick={logout}>Вийти з акаунта</button></div>}
 
