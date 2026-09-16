@@ -1720,7 +1720,16 @@ async function updateDream(e){
         </div>
       ) : (
         <div style={styles.momentsList}>
-          {dreams.map(dream=>(
+  <div style={{
+    fontSize:"18px",
+    fontWeight:"800",
+    color:"#3b2630",
+    marginBottom:"12px"
+  }}>
+    ✨ Наші мрії
+  </div>
+
+  {dreams.map(dream=>(
             <article
               key={dream.id}
               style={{
