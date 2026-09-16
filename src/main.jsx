@@ -2013,7 +2013,7 @@ galleryDescription:{
   fontSize:"13px",
   lineHeight:"1.5",
   color:"#806c73"
-}
+},
 homeSectionTitle:{
   fontSize:"14px",
   fontWeight:"800",
