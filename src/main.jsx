@@ -1936,7 +1936,174 @@ function DreamsPage({couple}) {
   );
                           }
 function PageWrapper({icon,title,subtitle,children}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>{icon}</div><h1 style={styles.pageTitle}>{title}</h1><p style={styles.pageSubtitle}>{subtitle}</p></section>{children}</div>}function EmptyState({icon,title,text}){return <div style={styles.emptyState}><div style={styles.emptyIcon}>{icon}</div><h3 style={styles.emptyTitle}>{title}</h3><p style={styles.emptyText}>{text}</p></div>}
-function SettingsPage({profile,couple,isAdmin,startDate,setStartDate,partnerName,setPartnerName,saveSettings,saving,logout}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>⚙️</div><h1 style={styles.pageTitle}>Налаштування</h1><p style={styles.pageSubtitle}>Налаштування нашої пари</p></section>{isAdmin?<section style={styles.settingsCard}><div style={styles.settingsTop}><div style={styles.settingsIcon}>👑</div><div><h2 style={styles.settingsTitle}>Налаштування адміністратора</h2><p style={styles.settingsText}>Тільки адміністратор може змінювати ці налаштування.</p></div></div><form onSubmit={saveSettings} style={styles.form}><label style={styles.label}>❤️ Початок наших стосунків</label><input type="datetime-local" value={startDate} onChange={e=>setStartDate(e.target.value)} style={styles.input} required/><label style={styles.label}>👩 Ім'я коханої</label><input type="text" value={partnerName} onChange={e=>setPartnerName(e.target.value)} placeholder="Наприклад: Даша" style={styles.input} maxLength={40} required/><button type="submit" style={styles.primaryButton} disabled={saving}>{saving?"Зберігаємо...":"Зберегти ❤️"}</button></form></section>:<section style={styles.infoCard}><div style={styles.bigEmoji}>🔒</div><h3 style={styles.infoTitle}>Налаштування доступні адміну</h3><p style={styles.infoText}>Дату початку стосунків та інші важливі параметри може змінювати тільки адміністратор.</p></section>}<section style={styles.accountCard}><div style={styles.accountTitle}>👤 Мій профіль</div><div style={styles.accountRow}><span>Ім'я</span><strong>{profile?.name||"Користувач"}</strong></div><div style={styles.accountRow}><span>Роль</span><strong>{isAdmin?"👑 Адміністратор":"❤️ Учасник пари"}</strong></div><div style={styles.accountRow}><span>Кохана</span><strong>{partnerName||"Даша"}</strong></div>{couple?.invite_code&&<div style={styles.accountRow}><span>Код пари</span><strong>{couple.invite_code}</strong></div>}</section><button style={styles.logoutButton} onClick={logout}>Вийти з акаунта</button></div>}
+function SettingsPage({
+  profile,
+  couple,
+  isAdmin,
+  startDate,
+  setStartDate,
+  partnerName,
+  setPartnerName,
+  saveSettings,
+  saving,
+  logout
+}) {
+  return (
+    <div>
+
+      <section style={styles.pageHeaderCenter}>
+        <div style={styles.pageIcon}>⚙️</div>
+        <h1 style={styles.pageTitle}>Налаштування</h1>
+        <p style={styles.pageSubtitle}>
+          Налаштування нашої пари
+        </p>
+      </section>
+
+      {/* ❤️ НАШІ СТОСУНКИ */}
+      <section
+        style={{
+          ...styles.settingsCard,
+          borderRadius: "26px",
+          background: "linear-gradient(135deg,#fff7f9,#fff)",
+          border: "1px solid #f3dfe5",
+          boxShadow: "0 10px 30px rgba(189,88,120,.10)"
+        }}
+      >
+
+        <div style={styles.settingsTop}>
+          <div
+            style={{
+              ...styles.settingsIcon,
+              fontSize: "30px"
+            }}
+          >
+            ❤️
+          </div>
+
+          <div>
+            <h2 style={styles.settingsTitle}>
+              Наші стосунки
+            </h2>
+
+            <p style={styles.settingsText}>
+              Налаштування, які стосуються тільки нас двох 💕
+            </p>
+          </div>
+        </div>
+
+        {isAdmin ? (
+          <form
+            onSubmit={saveSettings}
+            style={styles.form}
+          >
+
+            <label style={styles.label}>
+              📅 Початок наших стосунків
+            </label>
+
+            <input
+              type="datetime-local"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              style={styles.input}
+              required
+            />
+
+            <label style={styles.label}>
+              💕 Ім'я коханої
+            </label>
+
+            <input
+              type="text"
+              value={partnerName}
+              onChange={e => setPartnerName(e.target.value)}
+              placeholder="Наприклад: Даша"
+              style={styles.input}
+              maxLength={40}
+              required
+            />
+
+            <button
+              type="submit"
+              style={styles.primaryButton}
+              disabled={saving}
+            >
+              {saving
+                ? "Зберігаємо... ❤️"
+                : "💾 Зберегти зміни"}
+            </button>
+
+          </form>
+        ) : (
+          <div
+            style={{
+              padding: "16px",
+              borderRadius: "18px",
+              background: "#fff0f4",
+              color: "#8a5365",
+              fontSize: "14px",
+              lineHeight: "1.5"
+            }}
+          >
+            🔒 Змінювати дату початку стосунків та ім'я може тільки
+            адміністратор пари.
+          </div>
+        )}
+
+      </section>
+
+      {/* 👤 ПРОФІЛЬ */}
+      <section style={styles.accountCard}>
+
+        <div style={styles.accountTitle}>
+          👤 Мій профіль
+        </div>
+
+        <div style={styles.accountRow}>
+          <span>Ім'я</span>
+          <strong>
+            {profile?.name || "Користувач"}
+          </strong>
+        </div>
+
+        <div style={styles.accountRow}>
+          <span>Роль</span>
+          <strong>
+            {isAdmin
+              ? "👑 Адміністратор"
+              : "❤️ Учасник пари"}
+          </strong>
+        </div>
+
+        <div style={styles.accountRow}>
+          <span>Кохана</span>
+          <strong>
+            {partnerName || "Даша"}
+          </strong>
+        </div>
+
+        {couple?.invite_code && (
+          <div style={styles.accountRow}>
+            <span>Код пари</span>
+            <strong>
+              {couple.invite_code}
+            </strong>
+          </div>
+        )}
+
+      </section>
+
+      {/* 🚪 ВИХІД */}
+      <button
+        style={styles.logoutButton}
+        onClick={logout}
+      >
+        Вийти з акаунта
+      </button>
+
+    </div>
+  );
+}
 
 const styles={
 app:{minHeight:"100vh",background:"linear-gradient(180deg,#fff7fa 0%,#fff 55%,#fff8fb 100%)",color:"#3b2630",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",paddingBottom:"90px"},
