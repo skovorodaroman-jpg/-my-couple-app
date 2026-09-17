@@ -1729,8 +1729,85 @@ async function updateDream(e){
     ✨ Наші мрії
   </div>
 
-  {dreams.filter(dream => !dream.completed).map(dream=>(
-          ))}
+  {dreams
+  .filter(dream => !dream.completed)
+  .map(dream => (
+    <article
+      key={dream.id}
+      style={{
+        ...styles.momentCard,
+        borderRadius:"24px",
+        border:"1px solid #f3dfe5",
+        background:"linear-gradient(135deg,#fff,#fff7f9)",
+        boxShadow:"0 8px 25px rgba(189,88,120,.09)",
+        padding:"20px",
+        position:"relative",
+        overflow:"hidden"
+      }}
+    >
+      <div style={styles.momentContent}>
+
+        <div
+          style={{
+            fontSize:"28px",
+            marginBottom:"8px"
+          }}
+        >
+          ✨
+        </div>
+
+        <h3 style={styles.momentTitle}>
+          {dream.title}
+        </h3>
+
+        {dream.description && (
+          <p style={styles.momentDescription}>
+            {dream.description}
+          </p>
+        )}
+
+        <div
+          style={{
+            display:"flex",
+            gap:"8px",
+            marginTop:"14px",
+            flexWrap:"wrap"
+          }}
+        >
+
+          <button
+            type="button"
+            onClick={() => setEditingDream({
+              id:dream.id,
+              title:dream.title,
+              description:dream.description || ""
+            })}
+            style={styles.secondaryButton}
+          >
+            ✏️ Редагувати
+          </button>
+
+          <button
+            type="button"
+            onClick={() => toggleDream(dream)}
+            style={styles.secondaryButton}
+          >
+            ✅ Здійснено
+          </button>
+
+          <button
+            type="button"
+            onClick={() => deleteDream(dream.id)}
+            style={styles.deleteButton}
+          >
+            🗑️ Видалити
+          </button>
+
+        </div>
+
+      </div>
+    </article>
+  ))}
         </div>
 
         {dreams.some(dream => dream.completed) && (
