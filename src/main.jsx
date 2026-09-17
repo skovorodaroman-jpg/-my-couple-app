@@ -1916,19 +1916,7 @@ async function updateDream(e){
 
           </div>
         )}
-      )}
-                >
-                  <button
-  type="button"
-  onClick={()=>setEditingDream({
-    id:dream.id,
-    title:dream.title,
-    description:dream.description || ""
-  })}
-  style={styles.secondaryButton}
->
-  ✏️ Редагувати
-</button>
+      
 
                   <button
                     type="button"
