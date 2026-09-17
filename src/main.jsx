@@ -1919,7 +1919,7 @@ async function updateDream(e){
 
   </div>
 )}
-    >
+    
       <div style={styles.momentContent}>
 
         <div
