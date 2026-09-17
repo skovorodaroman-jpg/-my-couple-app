@@ -1467,54 +1467,53 @@ style={styles.deleteEventButton}
     </div>
   );
 }
-function DreamsPage({couple}){
-  const [dreams,setDreams]=useState([]);
-  const [showForm,setShowForm]=useState(false);
-  const [title,setTitle]=useState("");
-  const [description,setDescription]=useState("");
-  const [loading,setLoading]=useState(false);
-  const [editingDream,setEditingDream]=useState(null);
-  
-  async function loadDreams(){
-    if(!couple?.id)return;
+function DreamsPage({couple}) {
+  const [dreams, setDreams] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [editingDream, setEditingDream] = useState(null);
 
-    const {data,error}=await supabase
+  async function loadDreams() {
+    if (!couple?.id) return;
+
+    const { data, error } = await supabase
       .from("dreams")
       .select("*")
-      .eq("couple_id",couple.id)
-      .order("completed",{ascending:true})
-      .order("created_at",{ascending:false});
-    
+      .eq("couple_id", couple.id)
+      .order("completed", { ascending: true })
+      .order("created_at", { ascending: false });
 
-    if(error){
-      console.error("❌ Помилка завантаження мрій:",error);
+    if (error) {
+      console.error("❌ Помилка завантаження мрій:", error);
       return;
     }
 
-    setDreams(data||[]);
+    setDreams(data || []);
   }
 
-  useEffect(()=>{
+  useEffect(() => {
     loadDreams();
-  },[couple?.id]);
+  }, [couple?.id]);
 
-  async function addDream(e){
+  async function addDream(e) {
     e.preventDefault();
 
-    if(!couple?.id || !title.trim())return;
+    if (!couple?.id || !title.trim()) return;
 
     setLoading(true);
 
-    const {error}=await supabase
+    const { error } = await supabase
       .from("dreams")
       .insert({
-        couple_id:couple.id,
-        title:title.trim(),
-        description:description.trim()||null
+        couple_id: couple.id,
+        title: title.trim(),
+        description: description.trim() || null
       });
 
-    if(error){
-      console.error("❌ Помилка додавання мрії:",error);
+    if (error) {
+      console.error("❌ Помилка додавання мрії:", error);
       alert("Не вдалося додати мрію 😔");
       setLoading(false);
       return;
@@ -1527,53 +1526,56 @@ function DreamsPage({couple}){
 
     loadDreams();
   }
-async function updateDream(e){
-  e.preventDefault();
 
-  if(!editingDream?.id || !editingDream.title.trim()) return;
+  async function updateDream(e) {
+    e.preventDefault();
 
-  const {error}=await supabase
-    .from("dreams")
-    .update({
-      title:editingDream.title.trim(),
-      description:editingDream.description?.trim() || null
-    })
-    .eq("id",editingDream.id);
+    if (!editingDream?.id || !editingDream.title.trim()) return;
 
-  if(error){
-    console.error("❌ Помилка редагування мрії:",error);
-    alert("Не вдалося зберегти зміни 😔");
-    return;
+    const { error } = await supabase
+      .from("dreams")
+      .update({
+        title: editingDream.title.trim(),
+        description: editingDream.description?.trim() || null
+      })
+      .eq("id", editingDream.id);
+
+    if (error) {
+      console.error("❌ Помилка редагування мрії:", error);
+      alert("Не вдалося зберегти зміни 😔");
+      return;
+    }
+
+    setEditingDream(null);
+    loadDreams();
   }
 
-  setEditingDream(null);
-  loadDreams();
-}
-  
-  async function toggleDream(dream){
-    const {error}=await supabase
+  async function toggleDream(dream) {
+    const { error } = await supabase
       .from("dreams")
-      .update({completed:!dream.completed})
-      .eq("id",dream.id);
+      .update({
+        completed: !dream.completed
+      })
+      .eq("id", dream.id);
 
-    if(error){
-      console.error("❌ Помилка зміни статусу:",error);
+    if (error) {
+      console.error("❌ Помилка зміни статусу:", error);
       return;
     }
 
     loadDreams();
   }
 
-  async function deleteDream(id){
-    if(!confirm("Видалити цю мрію? ❤️"))return;
+  async function deleteDream(id) {
+    if (!confirm("Видалити цю мрію? ❤️")) return;
 
-    const {error}=await supabase
+    const { error } = await supabase
       .from("dreams")
       .delete()
-      .eq("id",id);
+      .eq("id", id);
 
-    if(error){
-      console.error("❌ Помилка видалення:",error);
+    if (error) {
+      console.error("❌ Помилка видалення:", error);
       return;
     }
 
@@ -1581,416 +1583,358 @@ async function updateDream(e){
   }
 
   return (
-  <PageWrapper
-    icon="✨"
-    title="Наші мрії"
-    subtitle="Те, що ми хочемо здійснити"
-  >
-
-    <button
-      type="button"
-      style={styles.addMomentButton}
-      onClick={() => setShowForm(prev => !prev)}
+    <PageWrapper
+      icon="✨"
+      title="Наші мрії"
+      subtitle="Те, що ми хочемо здійснити"
     >
-      {showForm ? "✕ Скасувати" : "➕ Додати мрію"}
-    </button>
-
-    {showForm && (
-      <form
-        onSubmit={addDream}
-        style={styles.momentForm}
-      >
-        <label style={styles.label}>
-          ✨ Назва мрії
-        </label>
-
-        <input
-          type="text"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="Наприклад: Поїхати разом у Париж ❤️"
-          style={styles.input}
-          maxLength={100}
-          required
-        />
-
-        <label style={styles.label}>
-          💭 Опис
-        </label>
-
-        <textarea
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          placeholder="Опиши нашу мрію..."
-          style={{
-            ...styles.input,
-            minHeight: "100px",
-            resize: "vertical"
-          }}
-          maxLength={500}
-        />
-
-        <button
-          type="submit"
-          style={styles.saveMomentButton}
-          disabled={loading}
-        >
-          {loading ? "Зберігаю... ❤️" : "💾 Зберегти мрію"}
-        </button>
-      </form>
-    )}
-{editingDream && (
-  <form
-    onSubmit={updateDream}
-    style={styles.momentForm}
-  >
-    <label style={styles.label}>
-      ✨ Назва мрії
-    </label>
-
-    <input
-      type="text"
-      value={editingDream.title}
-      onChange={e =>
-        setEditingDream({
-          ...editingDream,
-          title:e.target.value
-        })
-      }
-      style={styles.input}
-      maxLength={100}
-      required
-    />
-
-    <label style={styles.label}>
-      💭 Опис
-    </label>
-
-    <textarea
-      value={editingDream.description}
-      onChange={e =>
-        setEditingDream({
-          ...editingDream,
-          description:e.target.value
-        })
-      }
-      style={{
-        ...styles.input,
-        minHeight:"100px",
-        resize:"vertical"
-      }}
-      maxLength={500}
-    />
-
-    <div
-      style={{
-        display:"flex",
-        gap:"8px",
-        flexWrap:"wrap"
-      }}
-    >
-      <button
-        type="submit"
-        style={styles.saveMomentButton}
-      >
-        💾 Зберегти зміни
-      </button>
 
       <button
         type="button"
-        style={styles.secondaryButton}
-        onClick={()=>setEditingDream(null)}
+        style={styles.addMomentButton}
+        onClick={() => setShowForm(prev => !prev)}
       >
-        ✕ Скасувати
+        {showForm ? "✕ Скасувати" : "➕ Додати мрію"}
       </button>
-    </div>
-  </form>
-)}
-      {dreams.length === 0 ? (
-  <div style={styles.emptyMoments}>
-    <div style={styles.emptyMomentsIcon}>🌙</div>
 
-    <div style={styles.emptyMomentsTitle}>
-      Мрії попереду
-    </div>
+      {showForm && (
+        <form
+          onSubmit={addDream}
+          style={styles.momentForm}
+        >
+          <label style={styles.label}>
+            ✨ Назва мрії
+          </label>
 
-    <div style={styles.emptyMomentsText}>
-      Додайте вашу першу спільну мрію ❤️
-    </div>
-  </div>
-) : (
-  <div>
+          <input
+            type="text"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="Наприклад: Поїхати разом у Париж ❤️"
+            style={styles.input}
+            maxLength={100}
+            required
+          />
 
-    {/* НАШІ МРІЇ */}
-    <div
-      style={{
-        fontSize: "18px",
-        fontWeight: "800",
-        color: "#3b2630",
-        marginBottom: "12px"
-      }}
-    >
-      ✨ Наші мрії
-    </div>
+          <label style={styles.label}>
+            💭 Опис
+          </label>
 
-    <div style={styles.momentsList}>
-      {dreams
-        .filter(dream => !dream.completed)
-        .map(dream => (
-          <article
-            key={dream.id}
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Опиши нашу мрію..."
             style={{
-              ...styles.momentCard,
-              borderRadius: "24px",
-              border: "1px solid #f3dfe5",
-              background: "linear-gradient(135deg,#fff,#fff7f9)",
-              boxShadow: "0 8px 25px rgba(189,88,120,.09)",
-              padding: "20px"
+              ...styles.input,
+              minHeight: "100px",
+              resize: "vertical"
+            }}
+            maxLength={500}
+          />
+
+          <button
+            type="submit"
+            style={styles.saveMomentButton}
+            disabled={loading}
+          >
+            {loading ? "Зберігаю... ❤️" : "💾 Зберегти мрію"}
+          </button>
+        </form>
+      )}
+
+      {editingDream && (
+        <form
+          onSubmit={updateDream}
+          style={styles.momentForm}
+        >
+          <label style={styles.label}>
+            ✨ Назва мрії
+          </label>
+
+          <input
+            type="text"
+            value={editingDream.title}
+            onChange={e =>
+              setEditingDream({
+                ...editingDream,
+                title: e.target.value
+              })
+            }
+            style={styles.input}
+            maxLength={100}
+            required
+          />
+
+          <label style={styles.label}>
+            💭 Опис
+          </label>
+
+          <textarea
+            value={editingDream.description}
+            onChange={e =>
+              setEditingDream({
+                ...editingDream,
+                description: e.target.value
+              })
+            }
+            style={{
+              ...styles.input,
+              minHeight: "100px",
+              resize: "vertical"
+            }}
+            maxLength={500}
+          />
+
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              flexWrap: "wrap"
             }}
           >
-            <div style={styles.momentContent}>
+            <button
+              type="submit"
+              style={styles.saveMomentButton}
+            >
+              💾 Зберегти зміни
+            </button>
+
+            <button
+              type="button"
+              style={styles.secondaryButton}
+              onClick={() => setEditingDream(null)}
+            >
+              ✕ Скасувати
+            </button>
+          </div>
+        </form>
+      )}
+
+      {dreams.length === 0 ? (
+        <div style={styles.emptyMoments}>
+          <div style={styles.emptyMomentsIcon}>
+            🌙
+          </div>
+
+          <div style={styles.emptyMomentsTitle}>
+            Мрії попереду
+          </div>
+
+          <div style={styles.emptyMomentsText}>
+            Додайте вашу першу спільну мрію ❤️
+          </div>
+        </div>
+      ) : (
+        <div>
+
+          <div
+            style={{
+              fontSize: "18px",
+              fontWeight: "800",
+              color: "#3b2630",
+              marginBottom: "12px"
+            }}
+          >
+            ✨ Наші мрії
+          </div>
+
+          <div style={styles.momentsList}>
+            {dreams
+              .filter(dream => !dream.completed)
+              .map(dream => (
+                <article
+                  key={dream.id}
+                  style={{
+                    ...styles.momentCard,
+                    borderRadius: "24px",
+                    border: "1px solid #f3dfe5",
+                    background: "linear-gradient(135deg,#fff,#fff7f9)",
+                    boxShadow: "0 8px 25px rgba(189,88,120,.09)",
+                    padding: "20px"
+                  }}
+                >
+
+                  <div style={styles.momentContent}>
+
+                    <div
+                      style={{
+                        fontSize: "28px",
+                        marginBottom: "8px"
+                      }}
+                    >
+                      ✨
+                    </div>
+
+                    <h3 style={styles.momentTitle}>
+                      {dream.title}
+                    </h3>
+
+                    {dream.description && (
+                      <p style={styles.momentDescription}>
+                        {dream.description}
+                      </p>
+                    )}
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        marginTop: "14px",
+                        flexWrap: "wrap"
+                      }}
+                    >
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingDream({
+                            id: dream.id,
+                            title: dream.title,
+                            description: dream.description || ""
+                          })
+                        }
+                        style={styles.secondaryButton}
+                      >
+                        ✏️ Редагувати
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleDream(dream)}
+                        style={styles.secondaryButton}
+                      >
+                        ✅ Здійснено
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => deleteDream(dream.id)}
+                        style={styles.deleteButton}
+                      >
+                        🗑️ Видалити
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                </article>
+              ))}
+          </div>
+
+          {dreams.some(dream => dream.completed) && (
+            <div style={{ marginTop: "28px" }}>
 
               <div
                 style={{
-                  fontSize: "28px",
-                  marginBottom: "8px"
+                  fontSize: "18px",
+                  fontWeight: "800",
+                  color: "#3b2630",
+                  marginBottom: "12px"
                 }}
               >
-                ✨
+                ❤️ Здійснено
               </div>
 
-              <h3 style={styles.momentTitle}>
-                {dream.title}
-              </h3>
+              <div style={styles.momentsList}>
+                {dreams
+                  .filter(dream => dream.completed)
+                  .map(dream => (
+                    <article
+                      key={dream.id}
+                      style={{
+                        ...styles.momentCard,
+                        opacity: 0.72,
+                        borderRadius: "24px",
+                        border: "1px solid #eadfe3",
+                        background: "linear-gradient(135deg,#faf7f8,#fff)",
+                        boxShadow: "0 8px 25px rgba(120,90,100,.07)",
+                        padding: "20px"
+                      }}
+                    >
 
-              {dream.description && (
-                <p style={styles.momentDescription}>
-                  {dream.description}
-                </p>
-              )}
+                      <div style={styles.momentContent}>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  marginTop: "14px",
-                  flexWrap: "wrap"
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEditingDream({
-                      id: dream.id,
-                      title: dream.title,
-                      description: dream.description || ""
-                    })
-                  }
-                  style={styles.secondaryButton}
-                >
-                  ✏️ Редагувати
-                </button>
+                        <div
+                          style={{
+                            fontSize: "28px",
+                            marginBottom: "8px"
+                          }}
+                        >
+                          ✅
+                        </div>
 
-                <button
-                  type="button"
-                  onClick={() => toggleDream(dream)}
-                  style={styles.secondaryButton}
-                >
-                  ✅ Здійснено
-                </button>
+                        <h3
+                          style={{
+                            ...styles.momentTitle,
+                            textDecoration: "line-through"
+                          }}
+                        >
+                          {dream.title}
+                        </h3>
 
-                <button
-                  type="button"
-                  onClick={() => deleteDream(dream.id)}
-                  style={styles.deleteButton}
-                >
-                  🗑️ Видалити
-                </button>
+                        {dream.description && (
+                          <p style={styles.momentDescription}>
+                            {dream.description}
+                          </p>
+                        )}
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            marginTop: "14px",
+                            flexWrap: "wrap"
+                          }}
+                        >
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditingDream({
+                                id: dream.id,
+                                title: dream.title,
+                                description: dream.description || ""
+                              })
+                            }
+                            style={styles.secondaryButton}
+                          >
+                            ✏️ Редагувати
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => toggleDream(dream)}
+                            style={styles.secondaryButton}
+                          >
+                            ↩️ Повернути
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteDream(dream.id)}
+                            style={styles.deleteButton}
+                          >
+                            🗑️ Видалити
+                          </button>
+
+                        </div>
+
+                      </div>
+
+                    </article>
+                  ))}
               </div>
 
             </div>
-          </article>
-        ))}
-    </div>
+          )}
 
-    {/* ЗДІЙСНЕНО */}
-    {dreams.some(dream => dream.completed) && (
-      <div style={{ marginTop: "28px" }}>
-
-        <div
-          style={{
-            fontSize: "18px",
-            fontWeight: "800",
-            color: "#3b2630",
-            marginBottom: "12px"
-          }}
-        >
-          ❤️ Здійснено
-        </div>
-
-        <div style={styles.momentsList}>
-          {dreams
-            .filter(dream => dream.completed)
-            .map(dream => (
-              <article
-                key={dream.id}
-                style={{
-                  ...styles.momentCard,
-                  opacity: 0.72,
-                  borderRadius: "24px",
-                  border: "1px solid #eadfe3",
-                  background: "linear-gradient(135deg,#faf7f8,#fff)",
-                  boxShadow: "0 8px 25px rgba(120,90,100,.07)",
-                  padding: "20px"
-                }}
-              >
-                <div style={styles.momentContent}>
-
-                  <div
-                    style={{
-                      fontSize: "28px",
-                      marginBottom: "8px"
-                    }}
-                  >
-                    ✅
-                  </div>
-
-                  <h3
-                    style={{
-                      ...styles.momentTitle,
-                      textDecoration: "line-through"
-                    }}
-                  >
-                    {dream.title}
-                  </h3>
-
-                  {dream.description && (
-                    <p style={styles.momentDescription}>
-                      {dream.description}
-                    </p>
-                  )}
-
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "8px",
-                      marginTop: "14px",
-                      flexWrap: "wrap"
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setEditingDream({
-                          id: dream.id,
-                          title: dream.title,
-                          description: dream.description || ""
-                        })
-                      }
-                      style={styles.secondaryButton}
-                    >
-                      ✏️ Редагувати
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleDream(dream)}
-                      style={styles.secondaryButton}
-                    >
-                      ↩️ Повернути
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => deleteDream(dream.id)}
-                      style={styles.deleteButton}
-                    >
-                      🗑️ Видалити
-                    </button>
-                  </div>
-
-                </div>
-              </article>
-            ))}
-        </div>
-
-      </div>
-    )}
-
-  </div>
-)}
-    
-      <div style={styles.momentContent}>
-
-        <div
-          style={{
-            fontSize:"28px",
-            marginBottom:"8px"
-          }}
-        >
-          ✨
-        </div>
-
-        <h3 style={styles.momentTitle}>
-          {dream.title}
-        </h3>
-
-        {dream.description && (
-          <p style={styles.momentDescription}>
-            {dream.description}
-          </p>
-        )}
-
-        <div
-          style={{
-            display:"flex",
-            gap:"8px",
-            marginTop:"14px",
-            flexWrap:"wrap"
-          }}
-        >
-
-          <button
-            type="button"
-            onClick={() => setEditingDream({
-              id:dream.id,
-              title:dream.title,
-              description:dream.description || ""
-            })}
-            style={styles.secondaryButton}
-          >
-            ✏️ Редагувати
-          </button>
-
-          <button
-            type="button"
-            onClick={() => toggleDream(dream)}
-            style={styles.secondaryButton}
-          >
-            ✅ Здійснено
-          </button>
-
-          <button
-            type="button"
-            onClick={() => deleteDream(dream.id)}
-            style={styles.deleteButton}
-          >
-            🗑️ Видалити
-          </button>
-
-
-                </div>
-
-              </div>
-
-            </article>
-          ))}
         </div>
       )}
 
     </PageWrapper>
   );
-                }
+                          }
 function PageWrapper({icon,title,subtitle,children}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>{icon}</div><h1 style={styles.pageTitle}>{title}</h1><p style={styles.pageSubtitle}>{subtitle}</p></section>{children}</div>}function EmptyState({icon,title,text}){return <div style={styles.emptyState}><div style={styles.emptyIcon}>{icon}</div><h3 style={styles.emptyTitle}>{title}</h3><p style={styles.emptyText}>{text}</p></div>}
 function SettingsPage({profile,couple,isAdmin,startDate,setStartDate,partnerName,setPartnerName,saveSettings,saving,logout}){return <div><section style={styles.pageHeaderCenter}><div style={styles.pageIcon}>⚙️</div><h1 style={styles.pageTitle}>Налаштування</h1><p style={styles.pageSubtitle}>Налаштування нашої пари</p></section>{isAdmin?<section style={styles.settingsCard}><div style={styles.settingsTop}><div style={styles.settingsIcon}>👑</div><div><h2 style={styles.settingsTitle}>Налаштування адміністратора</h2><p style={styles.settingsText}>Тільки адміністратор може змінювати ці налаштування.</p></div></div><form onSubmit={saveSettings} style={styles.form}><label style={styles.label}>❤️ Початок наших стосунків</label><input type="datetime-local" value={startDate} onChange={e=>setStartDate(e.target.value)} style={styles.input} required/><label style={styles.label}>👩 Ім'я коханої</label><input type="text" value={partnerName} onChange={e=>setPartnerName(e.target.value)} placeholder="Наприклад: Даша" style={styles.input} maxLength={40} required/><button type="submit" style={styles.primaryButton} disabled={saving}>{saving?"Зберігаємо...":"Зберегти ❤️"}</button></form></section>:<section style={styles.infoCard}><div style={styles.bigEmoji}>🔒</div><h3 style={styles.infoTitle}>Налаштування доступні адміну</h3><p style={styles.infoText}>Дату початку стосунків та інші важливі параметри може змінювати тільки адміністратор.</p></section>}<section style={styles.accountCard}><div style={styles.accountTitle}>👤 Мій профіль</div><div style={styles.accountRow}><span>Ім'я</span><strong>{profile?.name||"Користувач"}</strong></div><div style={styles.accountRow}><span>Роль</span><strong>{isAdmin?"👑 Адміністратор":"❤️ Учасник пари"}</strong></div><div style={styles.accountRow}><span>Кохана</span><strong>{partnerName||"Даша"}</strong></div>{couple?.invite_code&&<div style={styles.accountRow}><span>Код пари</span><strong>{couple.invite_code}</strong></div>}</section><button style={styles.logoutButton} onClick={logout}>Вийти з акаунта</button></div>}
 
