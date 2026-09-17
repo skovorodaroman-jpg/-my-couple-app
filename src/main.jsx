@@ -1754,9 +1754,16 @@ async function updateDream(e){
                   <article
                     key={dream.id}
                     style={{
-                      ...styles.momentCard,
-                      opacity:0.7
-                    }}
+  ...styles.momentCard,
+  opacity:0.72,
+  borderRadius:"24px",
+  border:"1px solid #eadfe3",
+  background:"linear-gradient(135deg,#faf7f8,#fff)",
+  boxShadow:"0 8px 25px rgba(120,90,100,.07)",
+  padding:"20px",
+  position:"relative",
+  overflow:"hidden"
+}}
                   >
 
                     <div style={styles.momentContent}>
