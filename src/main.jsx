@@ -1989,7 +1989,7 @@ function MoviesPage({ couple, session }) {
   })()}
 </div>    
       
-      )}
+      
     </section>
   );
 }
