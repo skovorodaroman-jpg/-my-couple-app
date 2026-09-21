@@ -1623,6 +1623,7 @@ function MoviesPage({ couple, session }) {
   const [savingRating, setSavingRating] = useState(false);
 
   const [members, setMembers] = useState([]);
+  const [commentInputs, setCommentInputs] = useState({});
 
   // Для перегляду постерів як у "Моментах"
   const [movieViewerIndex, setMovieViewerIndex] = useState(null);
@@ -1728,40 +1729,40 @@ function MoviesPage({ couple, session }) {
     setLoadingMovies(false);
   }
 
-  async function saveRating(movieId, rating) {
-    if (!session?.user?.id) {
-      alert("Потрібно увійти в акаунт ❌");
+  async function saveRating(movieId, rating, comment = "") {
+  if (!session?.user?.id) {
+    alert("Потрібно увійти в акаунт ❌");
+    return;
+  }
+
+  setSavingRating(true);
+
+  try {
+    const { error } = await supabase
+      .from("movie_ratings")
+      .upsert(
+        {
+          movie_id: movieId,
+          user_id: session.user.id,
+          rating: Number(rating),
+          comment: comment.trim() || null
+        },
+        {
+          onConflict: "movie_id,user_id"
+        }
+      );
+
+    if (error) {
+      console.error(error);
+      alert("Не вдалося зберегти оцінку ❌");
       return;
     }
 
-    setSavingRating(true);
-
-    try {
-      const { error } = await supabase
-        .from("movie_ratings")
-        .upsert(
-          {
-            movie_id: movieId,
-            user_id: session.user.id,
-            rating: Number(rating)
-          },
-          {
-            onConflict: "movie_id,user_id"
-          }
-        );
-
-      if (error) {
-        console.error(error);
-        alert("Не вдалося зберегти оцінку ❌");
-        return;
-      }
-
-      await loadRatings();
-    } finally {
-      setSavingRating(false);
-    }
+    await loadRatings();
+  } finally {
+    setSavingRating(false);
   }
-
+}
   function startEditMovie(movie) {
     setEditingMovie(movie);
     setMovieTitle(movie.title || "");
@@ -2126,176 +2127,325 @@ function MoviesPage({ couple, session }) {
         </div>
       ) : (
         <div>
-          {movies.map((movie, index) => (
-            <article
-              key={movie.id}
-              style={styles.momentCard}
+          <div
+  style={{
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(2, minmax(0, 1fr))",
+    gap: "14px",
+    marginTop: "18px"
+  }}
+>
+  {movies.map((movie, index) => {
+    const movieRatings = ratings.filter(
+      (r) => r.movie_id === movie.id
+    );
+
+    const movieAverage =
+      movieRatings.length > 0
+        ? movieRatings.reduce(
+            (sum, r) => sum + Number(r.rating),
+            0
+          ) / movieRatings.length
+        : null;
+
+    return (
+      <article
+        key={movie.id}
+        style={{
+          background: "#fff",
+          borderRadius: "18px",
+          overflow: "hidden",
+          boxShadow:
+            "0 4px 18px rgba(0,0,0,0.08)"
+        }}
+      >
+        {/* ПОСТЕР */}
+        <div
+          onClick={() =>
+            setMovieViewerIndex(index)
+          }
+          style={{
+            cursor: "pointer",
+            position: "relative",
+            background: "#f7edf1"
+          }}
+        >
+          {movie.poster_url ? (
+            <img
+              src={movie.poster_url}
+              alt={movie.title}
+              style={{
+                width: "100%",
+                aspectRatio: "2 / 3",
+                objectFit: "cover",
+                display: "block"
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "100%",
+                aspectRatio: "2 / 3",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "48px"
+              }}
             >
-              {movie.poster_url && (
-                <img
-                  src={movie.poster_url}
-                  alt={movie.title}
-                  onClick={() =>
-                    setMovieViewerIndex(index)
-                  }
+              🎬
+            </div>
+          )}
+
+          {movieAverage !== null && (
+            <div
+              style={{
+                position: "absolute",
+                right: "8px",
+                bottom: "8px",
+                padding: "6px 9px",
+                borderRadius: "10px",
+                background:
+                  "rgba(255,255,255,0.92)",
+                fontWeight: "900",
+                color: "#9a5268"
+              }}
+            >
+              ⭐ {movieAverage.toFixed(1)}
+            </div>
+          )}
+        </div>
+
+        {/* ІНФОРМАЦІЯ */}
+        <div
+          style={{
+            padding: "12px"
+          }}
+        >
+          <h3
+            style={{
+              margin: "0",
+              fontSize: "16px",
+              lineHeight: "1.25"
+            }}
+          >
+            {movie.title}
+          </h3>
+
+          {movie.watched_date && (
+            <div
+              style={{
+                marginTop: "5px",
+                fontSize: "12px",
+                color: "#888"
+              }}
+            >
+              📅{" "}
+              {new Date(
+                `${movie.watched_date}T00:00:00`
+              ).toLocaleDateString("uk-UA")}
+            </div>
+          )}
+
+          {/* ОЦІНКИ */}
+          <div
+            style={{
+              marginTop: "10px"
+            }}
+          >
+            {members.map((member) => {
+              const memberRating =
+                ratings.find(
+                  (r) =>
+                    r.movie_id === movie.id &&
+                    r.user_id === member.id
+                );
+
+              const isMe =
+                member.id === session?.user?.id;
+
+              return (
+                <div
+                  key={member.id}
                   style={{
-                    width: "100%",
-                    height: "360px",
-                    objectFit: "cover",
-                    display: "block",
-                    cursor: "pointer"
+                    marginBottom: "9px"
                   }}
-                />
-              )}
-
-              <div style={styles.momentContent}>
-                <h2>{movie.title}</h2>
-
-                {movie.watched_date && (
+                >
                   <div
                     style={{
-                      marginTop: "6px",
-                      color: "#888",
-                      fontSize: "14px"
+                      fontSize: "13px",
+                      fontWeight: "800"
                     }}
                   >
-                    📅{" "}
-                    {new Date(
-                      `${movie.watched_date}T00:00:00`
-                    ).toLocaleDateString(
-                      "uk-UA"
-                    )}
+                    {member.name === "Рома"
+                      ? "❤️"
+                      : "💕"}{" "}
+                    {member.name}:{" "}
+                    {memberRating
+                      ? `${Number(
+                          memberRating.rating
+                        )}/10 ⭐`
+                      : "—"}
                   </div>
-                )}
 
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "8px",
-                    marginTop: "12px",
-                    flexWrap: "wrap"
-                  }}
-                >
-                  <button
-                    type="button"
-                    style={styles.secondaryButton}
-                    onClick={() =>
-                      startEditMovie(movie)
-                    }
-                  >
-                    ✏️ Редагувати
-                  </button>
-
-                  <button
-                    type="button"
-                    style={{
-                      ...styles.secondaryButton,
-                      color: "#b33",
-                      borderColor: "#e5b5bd"
-                    }}
-                    onClick={() =>
-                      deleteMovie(movie)
-                    }
-                    disabled={deletingMovie}
-                  >
-                    🗑️ Видалити
-                  </button>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "16px"
-                  }}
-                >
-                  {members.map((member) => {
-                    const memberRating =
-                      ratings.find(
-                        (r) =>
-                          r.movie_id === movie.id &&
-                          r.user_id === member.id
-                      );
-
-                    const isMe =
-                      member.id ===
-                      session?.user?.id;
-
-                    return (
-                      <div
-                        key={member.id}
-                        style={{
-                          marginBottom: "12px",
-                          padding: "12px",
-                          borderRadius: "14px",
-                          background: "#fff7fa"
-                        }}
-                      >
-                        <div
+                  {/* КНОПКИ ОЦІНКИ */}
+                  {isMe && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "3px",
+                        flexWrap: "wrap",
+                        marginTop: "5px"
+                      }}
+                    >
+                      {[
+                        1, 2, 3, 4, 5,
+                        6, 7, 8, 9, 10
+                      ].map((number) => (
+                        <button
+                          key={number}
+                          type="button"
+                          disabled={savingRating}
+                          onClick={() =>
+                            saveRating(
+                              movie.id,
+                              number,
+                              commentInputs[
+                                movie.id
+                              ] || ""
+                            )
+                          }
                           style={{
-                            fontWeight: "800",
-                            marginBottom: "8px"
+                            border: "none",
+                            borderRadius: "6px",
+                            padding:
+                              "4px 6px",
+                            background:
+                              Number(
+                                memberRating?.rating
+                              ) === number
+                                ? "#ffb6c9"
+                                : "#fff0f4",
+                            color:
+                              "#9a5268",
+                            fontSize: "11px",
+                            fontWeight: "800"
                           }}
                         >
-                          {member.name === "Рома"
-                            ? "❤️"
-                            : "💕"}{" "}
-                          {member.name}{" "}
-                          {memberRating
-                            ? `${Number(
-                                memberRating.rating
-                              )}/10 ⭐`
-                            : "ще не оцінив"}
-                        </div>
+                          {number}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-                        {isMe && (
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: "5px",
-                              flexWrap: "wrap"
-                            }}
-                          >
-                            {[
-                              1, 2, 3, 4, 5,
-                              6, 7, 8, 9, 10
-                            ].map((number) => (
-                              <button
-                                key={number}
-                                type="button"
-                                disabled={
-                                  savingRating
-                                }
-                                onClick={() =>
-                                  saveRating(
-                                    movie.id,
-                                    number
-                                  )
-                                }
-                                style={{
-                                  border: "none",
-                                  borderRadius: "9px",
-                                  padding:
-                                    "6px 9px",
-                                  cursor:
-                                    "pointer",
-                                  background:
-                                    Number(
-                                      memberRating?.rating
-                                    ) === number
-                                      ? "#ffb6c9"
-                                      : "#fff0f4",
-                                  color:
-                                    "#9a5268",
-                                  fontWeight: "800"
-                                }}
-                              >
-                                {number}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {/* КОМЕНТАР */}
+                  {isMe && (
+                    <textarea
+                      placeholder="💬 Твій коментар..."
+                      value={
+                        commentInputs[
+                          movie.id
+                        ] ??
+                        memberRating?.comment ??
+                        ""
+                      }
+                      onChange={(e) =>
+                        setCommentInputs(
+                          (prev) => ({
+                            ...prev,
+                            [movie.id]:
+                              e.target.value
+                          })
+                        )
+                      }
+                      rows={2}
+                      style={{
+                        width: "100%",
+                        boxSizing:
+                          "border-box",
+                        marginTop: "6px",
+                        padding: "7px",
+                        borderRadius: "9px",
+                        border:
+                          "1px solid #f0d4dc",
+                        resize: "vertical",
+                        fontFamily:
+                          "inherit",
+                        fontSize: "12px",
+                        outline: "none"
+                      }}
+                    />
+                  )}
+
+                  {/* ПОКАЗ КОМЕНТАРЯ */}
+                  {memberRating?.comment && (
+                    <div
+                      style={{
+                        marginTop: "5px",
+                        padding: "7px",
+                        borderRadius: "9px",
+                        background:
+                          "#fff7fa",
+                        color: "#777",
+                        fontSize: "12px",
+                        fontStyle: "italic"
+                      }}
+                    >
+                      💬{" "}
+                      {memberRating.comment}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* КНОПКИ */}
+          <div
+            style={{
+              display: "flex",
+              gap: "6px",
+              marginTop: "10px"
+            }}
+          >
+            <button
+              type="button"
+              style={{
+                ...styles.secondaryButton,
+                flex: 1,
+                fontSize: "12px",
+                padding: "8px 5px"
+              }}
+              onClick={() =>
+                startEditMovie(movie)
+              }
+            >
+              ✏️
+            </button>
+
+            <button
+              type="button"
+              style={{
+                ...styles.secondaryButton,
+                flex: 1,
+                fontSize: "12px",
+                padding: "8px 5px",
+                color: "#b33",
+                borderColor: "#e5b5bd"
+              }}
+              onClick={() =>
+                deleteMovie(movie)
+              }
+              disabled={deletingMovie}
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  })}
+</div>
 
                   {(() => {
                     const movieRatings =
