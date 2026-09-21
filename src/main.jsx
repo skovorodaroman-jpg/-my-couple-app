@@ -313,8 +313,80 @@ async function joinCoupleByCode(code) {
 
   if (loading) return <div style={styles.loading}><div style={styles.loadingHeart}>❤️</div><div>Завантажуємо наше кохання...</div></div>;
   if (!session) return <div style={styles.loading}><div style={styles.loadingHeart}>🔐</div><h2>Потрібно увійти</h2><button style={styles.primaryButton} onClick={() => window.location.href = "/login.html"}>Увійти ❤️</button></div>;
+  if (!couple) {
+  return (
+    <div style={styles.loading}>
+      <div style={styles.loadingHeart}>💕</div>
+
+      <h2>Приєднайся до вашої пари</h2>
+
+      <p>
+        Введи код запрошення від свого партнера ❤️
+      </p>
+
+      <input
+        id="inviteCode"
+        type="text"
+        placeholder="Код запрошення"
+        style={styles.input}
+      />
+
+      <button
+        style={styles.primaryButton}
+        onClick={() =>
+          joinCoupleByCode(
+            document.getElementById("inviteCode").value
+          )
+        }
+      >
+        Приєднатися ❤️
+      </button>
+
+      <button
+        style={styles.secondaryButton}
+        onClick={logout}
+      >
+        Вийти
+      </button>
+    </div>
+  );
+  }
 
   const isAdmin = profile?.role === "admin";
+  if (!couple) {
+  return (
+    <div style={styles.loading}>
+      <div style={styles.loadingHeart}>💕</div>
+      <h2>Приєднайся до вашої пари</h2>
+      <p>Введи код запрошення від свого партнера ❤️</p>
+
+      <input
+        id="inviteCode"
+        type="text"
+        placeholder="Код запрошення"
+        style={styles.input}
+      />
+
+      <button
+        style={styles.primaryButton}
+        onClick={() =>
+          joinCoupleByCode(
+            document.getElementById("inviteCode").value
+          )
+        }
+      >
+        Приєднатися ❤️
+      </button>
+
+      <button
+        style={styles.secondaryButton}
+        onClick={logout}
+      >
+        Вийти
+      </button>
+    </div>
+  );
+  }
   return <div style={styles.app}>
     <header style={styles.header}>
   <div>
