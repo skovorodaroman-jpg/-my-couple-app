@@ -1601,9 +1601,41 @@ style={styles.deleteEventButton}
             </article>
                                         ))}
       
-    </div>
+        </div>
   );
 }
+
+function MoviesPage({ couple, session }) {
+  return (
+    <section style={styles.page}>
+      <h1 style={styles.pageTitle}>🎬 Наше кіно</h1>
+
+      <div style={styles.statsGrid}>
+        <div style={styles.statCard}>
+          <strong>0</strong>
+          <span>Фільмів переглянуто</span>
+        </div>
+
+        <div style={styles.statCard}>
+          <strong>— ⭐</strong>
+          <span>Середній рейтинг Роми</span>
+        </div>
+
+        <div style={styles.statCard}>
+          <strong>— ⭐</strong>
+          <span>Середній рейтинг Даші</span>
+        </div>
+      </div>
+
+      <div style={styles.emptyState}>
+        <div style={{ fontSize: "50px" }}>🎬</div>
+        <h2>Наше кіно</h2>
+        <p>Тут з'являться ваші улюблені фільми ❤️</p>
+      </div>
+    </section>
+  );
+}
+
 function DreamsPage({couple}) {
   const [dreams, setDreams] = useState([]);
   const [showForm, setShowForm] = useState(false);
