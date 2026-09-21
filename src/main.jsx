@@ -1890,52 +1890,105 @@ function MoviesPage({ couple, session }) {
             <article key={movie.id} style={styles.momentCard}>
               <div style={styles.momentContent}>
                 <h2>{movie.title}</h2>
-                                <div style={{ marginTop: "12px" }}>
-                  <div style={{ fontWeight: "700", marginBottom: "8px" }}>
-                    ⭐ Твоя оцінка
-                  </div>
+                                <div style={{ marginTop: "16px" }}>
+  {members.map((member) => {
+    const memberRating = ratings.find(
+      (r) =>
+        r.movie_id === movie.id &&
+        r.user_id === member.id
+    );
 
-                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((number) => {
-                      const myRating = ratings.find(
-                        (r) =>
-                          r.movie_id === movie.id &&
-                          r.user_id === session?.user?.id
-                      );
+    const isMe = member.id === session?.user?.id;
 
-                      return (
-                        <button
-                          key={number}
-                          type="button"
-                          disabled={savingRating}
-                          onClick={() => saveRating(movie.id, number)}
-                          style={{
-                            border: "none",
-                            borderRadius: "10px",
-                            padding: "7px 10px",
-                            cursor: "pointer",
-                            background:
-                              Number(myRating?.rating) === number
-                                ? "#ffb6c9"
-                                : "#fff0f4",
-                            color: "#9a5268",
-                            fontWeight: "800"
-                          }}
-                        >
-                          {number}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {movie.watched_date && (
-                  <p>📅 {movie.watched_date}</p>
-                )}
-              </div>
-            </article>
-          ))}
+    return (
+      <div
+        key={member.id}
+        style={{
+          marginBottom: "12px",
+          padding: "12px",
+          borderRadius: "14px",
+          background: "#fff7fa"
+        }}
+      >
+        <div
+          style={{
+            fontWeight: "800",
+            marginBottom: "8px"
+          }}
+        >
+          {member.name === "Рома" ? "❤️" : "💕"}{" "}
+          {member.name}{" "}
+          {memberRating
+            ? `${Number(memberRating.rating)}/10 ⭐`
+            : "ще не оцінив"}
         </div>
+
+        {isMe && (
+          <div
+            style={{
+              display: "flex",
+              gap: "5px",
+              flexWrap: "wrap"
+            }}
+          >
+            {[1,2,3,4,5,6,7,8,9,10].map((number) => (
+              <button
+                key={number}
+                type="button"
+                disabled={savingRating}
+                onClick={() => saveRating(movie.id, number)}
+                style={{
+                  border: "none",
+                  borderRadius: "9px",
+                  padding: "6px 9px",
+                  cursor: "pointer",
+                  background:
+                    Number(memberRating?.rating) === number
+                      ? "#ffb6c9"
+                      : "#fff0f4",
+                  color: "#9a5268",
+                  fontWeight: "800"
+                }}
+              >
+                {number}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  })}
+
+  {(() => {
+    const movieRatings = ratings.filter(
+      (r) => r.movie_id === movie.id
+    );
+
+    if (movieRatings.length === 0) return null;
+
+    const average =
+      movieRatings.reduce(
+        (sum, r) => sum + Number(r.rating),
+        0
+      ) / movieRatings.length;
+
+    return (
+      <div
+        style={{
+          padding: "12px",
+          borderRadius: "14px",
+          background: "#fff0f4",
+          textAlign: "center",
+          fontWeight: "800",
+          color: "#9a5268"
+        }}
+      >
+        🎬 Середній рейтинг: {average.toFixed(1)} ⭐
+      </div>
+    );
+  })()}
+</div>    
+      
       )}
     </section>
   );
