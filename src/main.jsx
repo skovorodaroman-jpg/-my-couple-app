@@ -2487,7 +2487,7 @@ function MoviesPage({ couple, session }) {
                       </div>
                     );
                   })()}
-                </div>             
+                             
                </div>
             </div>
           </article>
