@@ -1615,7 +1615,40 @@ function MoviesPage({ couple, session }) {
   const [savingMovie, setSavingMovie] = useState(false);
     const [ratings, setRatings] = useState([]);
   const [savingRating, setSavingRating] = useState(false);
+    const [members, setMembers] = useState([]);
 
+    async function loadMembers() {
+    if (!couple?.id) return;
+
+    const { data, error } = await supabase
+      .from("couple_members")
+      .select("user_id")
+      .eq("couple_id", couple.id);
+
+    if (error) {
+      console.error("Помилка завантаження учасників:", error);
+      return;
+    }
+
+    const userIds = (data || []).map((member) => member.user_id);
+
+    if (userIds.length === 0) {
+      setMembers([]);
+      return;
+    }
+
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, name")
+      .in("id", userIds);
+
+    if (profilesError) {
+      console.error("Помилка завантаження профілів:", profilesError);
+      return;
+    }
+
+    setMembers(profilesData || []);
+    }
     async function loadRatings() {
     if (!couple?.id) return;
 
@@ -1753,9 +1786,10 @@ function MoviesPage({ couple, session }) {
     setLoadingMovies(false);
   }
 
-    useEffect(() => {
+      useEffect(() => {
     loadMovies();
     loadRatings();
+    loadMembers();
   }, [couple?.id]);
 
   return (
