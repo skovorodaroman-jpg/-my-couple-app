@@ -1613,7 +1613,62 @@ function MoviesPage({ couple, session }) {
   const [movieDate, setMovieDate] = useState("");
   const [movieFile, setMovieFile] = useState(null);
   const [savingMovie, setSavingMovie] = useState(false);
+    const [ratings, setRatings] = useState([]);
+  const [savingRating, setSavingRating] = useState(false);
 
+    async function loadRatings() {
+    if (!couple?.id) return;
+
+    const { data, error } = await supabase
+      .from("movie_ratings")
+      .select(`
+        id,
+        movie_id,
+        user_id,
+        rating,
+        comment
+      `);
+
+    if (error) {
+      console.error("Помилка завантаження оцінок:", error);
+      return;
+    }
+
+    setRatings(data || []);
+    }
+    async function saveRating(movieId, rating) {
+    if (!session?.user?.id) {
+      alert("Потрібно увійти в акаунт ❌");
+      return;
+    }
+
+    setSavingRating(true);
+
+    try {
+      const { error } = await supabase
+        .from("movie_ratings")
+        .upsert(
+          {
+            movie_id: movieId,
+            user_id: session.user.id,
+            rating: Number(rating)
+          },
+          {
+            onConflict: "movie_id,user_id"
+          }
+        );
+
+      if (error) {
+        console.error(error);
+        alert("Не вдалося зберегти оцінку ❌");
+        return;
+      }
+
+      await loadRatings();
+    } finally {
+      setSavingRating(false);
+    }
+    }
     async function saveMovie() {
     if (!movieTitle.trim()) {
       alert("Введіть назву фільму 🎬");
@@ -1698,8 +1753,9 @@ function MoviesPage({ couple, session }) {
     setLoadingMovies(false);
   }
 
-  useEffect(() => {
+    useEffect(() => {
     loadMovies();
+    loadRatings();
   }, [couple?.id]);
 
   return (
@@ -1800,6 +1856,44 @@ function MoviesPage({ couple, session }) {
             <article key={movie.id} style={styles.momentCard}>
               <div style={styles.momentContent}>
                 <h2>{movie.title}</h2>
+                                <div style={{ marginTop: "12px" }}>
+                  <div style={{ fontWeight: "700", marginBottom: "8px" }}>
+                    ⭐ Твоя оцінка
+                  </div>
+
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((number) => {
+                      const myRating = ratings.find(
+                        (r) =>
+                          r.movie_id === movie.id &&
+                          r.user_id === session?.user?.id
+                      );
+
+                      return (
+                        <button
+                          key={number}
+                          type="button"
+                          disabled={savingRating}
+                          onClick={() => saveRating(movie.id, number)}
+                          style={{
+                            border: "none",
+                            borderRadius: "10px",
+                            padding: "7px 10px",
+                            cursor: "pointer",
+                            background:
+                              Number(myRating?.rating) === number
+                                ? "#ffb6c9"
+                                : "#fff0f4",
+                            color: "#9a5268",
+                            fontWeight: "800"
+                          }}
+                        >
+                          {number}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {movie.watched_date && (
                   <p>📅 {movie.watched_date}</p>
