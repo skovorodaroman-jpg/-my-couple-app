@@ -412,7 +412,8 @@ async function joinCoupleByCode(code) {
     setPage={setPage}
   />
 )}
-      {page === "dreams" && <DreamsPage couple={couple} />}
+      {page === "movies" && <MoviesPage couple={couple} session={session} />}
+  {page === "dreams" && <DreamsPage couple={couple} />}
       {page === "settings" && <SettingsPage profile={profile} couple={couple} isAdmin={isAdmin} startDate={startDate} setStartDate={setStartDate} partnerName={partnerName} setPartnerName={setPartnerName} saveSettings={saveSettings} saving={saving} logout={logout} />}
     </main>
     <nav style={styles.bottomNav}>{[["home","❤️","Головна"],["moments","📸","Моменти"],["movies","🎬","Кіно"],["calendar","📅","Календар"],["dreams","✨","Мрії"],["settings","⚙️","Налаштування"]].map(([target,icon,label]) => <button key={target} style={{...styles.navButton,...(page === target ? styles.navActive : {})}} onClick={() => setPage(target)}><span>{icon}</span><small>{label}</small></button>)}</nav>
