@@ -1606,13 +1606,41 @@ style={styles.deleteEventButton}
 }
 
 function MoviesPage({ couple, session }) {
+  const [movies, setMovies] = useState([]);
+  const [loadingMovies, setLoadingMovies] = useState(true);
+
+  async function loadMovies() {
+    if (!couple?.id) return;
+
+    setLoadingMovies(true);
+
+    const { data, error } = await supabase
+      .from("movies")
+      .select("*")
+      .eq("couple_id", couple.id)
+      .order("watched_date", { ascending: false });
+
+    if (error) {
+      console.error("Помилка завантаження фільмів:", error);
+      setLoadingMovies(false);
+      return;
+    }
+
+    setMovies(data || []);
+    setLoadingMovies(false);
+  }
+
+  useEffect(() => {
+    loadMovies();
+  }, [couple?.id]);
+
   return (
     <section style={styles.page}>
       <h1 style={styles.pageTitle}>🎬 Наше кіно</h1>
 
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
-          <strong>0</strong>
+          <strong>{movies.length}</strong>
           <span>Фільмів переглянуто</span>
         </div>
 
@@ -1627,15 +1655,35 @@ function MoviesPage({ couple, session }) {
         </div>
       </div>
 
-      <div style={styles.emptyState}>
-        <div style={{ fontSize: "50px" }}>🎬</div>
-        <h2>Наше кіно</h2>
-        <p>Тут з'являться ваші улюблені фільми ❤️</p>
-      </div>
+      {loadingMovies ? (
+        <div style={styles.emptyState}>
+          <div style={{ fontSize: "40px" }}>🎬</div>
+          <p>Завантажуємо наше кіно...</p>
+        </div>
+      ) : movies.length === 0 ? (
+        <div style={styles.emptyState}>
+          <div style={{ fontSize: "50px" }}>🎞️</div>
+          <h2>Поки що немає фільмів</h2>
+          <p>Додайте ваш перший спільний фільм ❤️</p>
+        </div>
+      ) : (
+        <div>
+          {movies.map((movie) => (
+            <article key={movie.id} style={styles.momentCard}>
+              <div style={styles.momentContent}>
+                <h2>{movie.title}</h2>
+
+                {movie.watched_date && (
+                  <p>📅 {movie.watched_date}</p>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
-
 function DreamsPage({couple}) {
   const [dreams, setDreams] = useState([]);
   const [showForm, setShowForm] = useState(false);
