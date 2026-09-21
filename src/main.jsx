@@ -244,7 +244,62 @@ async function deleteMoment(moment) {
     } catch (error) { console.error(error); alert("❌ Не вдалося зберегти налаштування."); }
     finally { setSaving(false); }
   }
+async function joinCoupleByCode(code) {
+  const cleanCode = code.trim().toUpperCase();
 
+  if (!cleanCode) {
+    alert("Введіть код запрошення ❤️");
+    return;
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData?.session?.user;
+
+  if (!user) {
+    alert("Спочатку увійдіть у свій акаунт.");
+    return;
+  }
+
+  const { data: couple, error: coupleError } = await supabase
+    .from("couples")
+    .select("id")
+    .eq("invite_code", cleanCode)
+    .single();
+
+  if (coupleError || !couple) {
+    console.error(coupleError);
+    alert("Такого коду запрошення не знайдено ❌");
+    return;
+  }
+
+  const { data: existingMember } = await supabase
+    .from("couple_members")
+    .select("couple_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingMember) {
+    alert("Ви вже приєднані до пари ❤️");
+    return;
+  }
+
+  const { error: joinError } = await supabase
+    .from("couple_members")
+    .insert({
+      couple_id: couple.id,
+      user_id: user.id
+    });
+
+  if (joinError) {
+    console.error(joinError);
+    alert("Не вдалося приєднатися до пари ❌");
+    return;
+  }
+
+  alert("Ви успішно приєдналися до пари ❤️");
+  window.location.reload();
+}
+  
   async function logout() { await supabase.auth.signOut(); window.location.href = "/login.html"; }
 
   if (loading) return <div style={styles.loading}><div style={styles.loadingHeart}>❤️</div><div>Завантажуємо наше кохання...</div></div>;
