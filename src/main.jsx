@@ -2447,52 +2447,6 @@ function MoviesPage({ couple, session }) {
   })}
 </div>
 
-                  {(() => {
-                    const movieRatings =
-                      ratings.filter(
-                        (r) =>
-                          r.movie_id === movie.id
-                      );
-
-                    if (
-                      movieRatings.length === 0
-                    ) {
-                      return null;
-                    }
-
-                    const average =
-                      movieRatings.reduce(
-                        (sum, r) =>
-                          sum +
-                          Number(r.rating),
-                        0
-                      ) /
-                      movieRatings.length;
-
-                    return (
-                      <div
-                        style={{
-                          padding: "12px",
-                          borderRadius:
-                            "14px",
-                          background:
-                            "#fff0f4",
-                          textAlign: "center",
-                          fontWeight: "800",
-                          color: "#9a5268"
-                        }}
-                      >
-                        🎬 Середній рейтинг:{" "}
-                        {average.toFixed(1)} ⭐
-                      </div>
-                    );
-                  })()}
-            </div>
-    
-          }
-        </div>
-      )}
-
       {/* ВЕЛИКИЙ ПЕРЕГЛЯДАЧ ПОСТЕРІВ */}
       {movieViewerIndex !== null &&
         movies[movieViewerIndex] && (
