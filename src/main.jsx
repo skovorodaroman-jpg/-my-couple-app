@@ -2487,8 +2487,6 @@ function MoviesPage({ couple, session }) {
                       </div>
                     );
                   })()}
-                             
-               </div>
             </div>
           </article>
           ))}
