@@ -1649,7 +1649,60 @@ function MoviesPage({ couple, session }) {
 >
   ➕ Додати фільм
 </button>
+{showMovieForm && (
+  <div style={styles.formCard}>
+    <h2>🎬 Додати фільм</h2>
 
+    <input
+      type="text"
+      placeholder="Назва фільму"
+      value={movieTitle}
+      onChange={(e) => setMovieTitle(e.target.value)}
+      style={styles.input}
+    />
+
+    <input
+      type="date"
+      value={movieDate}
+      onChange={(e) => setMovieDate(e.target.value)}
+      style={styles.input}
+    />
+
+    <label style={styles.fileLabel}>
+      📸 Обрати постер
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setMovieFile(e.target.files?.[0] || null)}
+        style={{ display: "none" }}
+      />
+    </label>
+
+    {movieFile && (
+      <p style={{ fontSize: "13px", color: "#777" }}>
+        📎 {movieFile.name}
+      </p>
+    )}
+
+    <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+      <button
+        type="button"
+        style={styles.primaryButton}
+        onClick={() => alert("Збереження додамо наступним кроком 🎬❤️")}
+      >
+        💾 Зберегти
+      </button>
+
+      <button
+        type="button"
+        style={styles.secondaryButton}
+        onClick={() => setShowMovieForm(false)}
+      >
+        Скасувати
+      </button>
+    </div>
+  </div>
+)}
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
           <strong>{movies.length}</strong>
