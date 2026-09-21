@@ -1608,6 +1608,11 @@ style={styles.deleteEventButton}
 function MoviesPage({ couple, session }) {
   const [movies, setMovies] = useState([]);
   const [loadingMovies, setLoadingMovies] = useState(true);
+    const [showMovieForm, setShowMovieForm] = useState(false);
+  const [movieTitle, setMovieTitle] = useState("");
+  const [movieDate, setMovieDate] = useState("");
+  const [movieFile, setMovieFile] = useState(null);
+  const [savingMovie, setSavingMovie] = useState(false);
 
   async function loadMovies() {
     if (!couple?.id) return;
@@ -1637,6 +1642,13 @@ function MoviesPage({ couple, session }) {
   return (
     <section style={styles.page}>
       <h1 style={styles.pageTitle}>🎬 Наше кіно</h1>
+      <button
+  type="button"
+  style={styles.primaryButton}
+  onClick={() => setShowMovieForm(true)}
+>
+  ➕ Додати фільм
+</button>
 
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
