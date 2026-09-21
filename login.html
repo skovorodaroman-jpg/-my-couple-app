@@ -124,6 +124,33 @@ const supabaseClient = window.supabase.createClient(
 const form = document.getElementById("loginForm");
 const message = document.getElementById("message");
 const button = document.getElementById("loginButton");
+    const forgotPassword = document.getElementById("forgotPassword");
+
+forgotPassword.addEventListener("click", async (event) => {
+    event.preventDefault();
+
+    const email = document.getElementById("email").value.trim();
+
+    if (!email) {
+        message.textContent = "⚠️ Спочатку введіть свій email";
+        return;
+    }
+
+    message.textContent = "Відправляємо лист...";
+
+    const { error } =
+        await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + "/reset-password.html"
+        });
+
+    if (error) {
+        message.textContent = "❌ " + error.message;
+        return;
+    }
+
+    message.textContent =
+        "✅ Лист для зміни пароля відправлено на " + email;
+});
 
 form.addEventListener("submit", async (event) => {
 
