@@ -1608,16 +1608,26 @@ style={styles.deleteEventButton}
 function MoviesPage({ couple, session }) {
   const [movies, setMovies] = useState([]);
   const [loadingMovies, setLoadingMovies] = useState(true);
-    const [showMovieForm, setShowMovieForm] = useState(false);
+
+  const [showMovieForm, setShowMovieForm] = useState(false);
+  const [editingMovie, setEditingMovie] = useState(null);
+
   const [movieTitle, setMovieTitle] = useState("");
   const [movieDate, setMovieDate] = useState("");
   const [movieFile, setMovieFile] = useState(null);
-  const [savingMovie, setSavingMovie] = useState(false);
-    const [ratings, setRatings] = useState([]);
-  const [savingRating, setSavingRating] = useState(false);
-    const [members, setMembers] = useState([]);
 
-    async function loadMembers() {
+  const [savingMovie, setSavingMovie] = useState(false);
+  const [deletingMovie, setDeletingMovie] = useState(false);
+
+  const [ratings, setRatings] = useState([]);
+  const [savingRating, setSavingRating] = useState(false);
+
+  const [members, setMembers] = useState([]);
+
+  // Для перегляду постерів як у "Моментах"
+  const [movieViewerIndex, setMovieViewerIndex] = useState(null);
+
+  async function loadMembers() {
     if (!couple?.id) return;
 
     const { data, error } = await supabase
@@ -1648,8 +1658,9 @@ function MoviesPage({ couple, session }) {
     }
 
     setMembers(profilesData || []);
-    }
-    async function loadRatings() {
+  }
+
+  async function loadRatings() {
     if (!couple?.id) return;
 
     const { data, error } = await supabase
@@ -1668,8 +1679,56 @@ function MoviesPage({ couple, session }) {
     }
 
     setRatings(data || []);
+  }
+
+  async function loadMovies() {
+    if (!couple?.id) return;
+
+    setLoadingMovies(true);
+
+    const { data, error } = await supabase
+      .from("movies")
+      .select("*")
+      .eq("couple_id", couple.id)
+      .order("watched_date", { ascending: false });
+
+    if (error) {
+      console.error("Помилка завантаження фільмів:", error);
+      setLoadingMovies(false);
+      return;
     }
-    async function saveRating(movieId, rating) {
+
+    // Створюємо тимчасові URL для приватних постерів
+    const moviesWithPosters = await Promise.all(
+      (data || []).map(async (movie) => {
+        if (!movie.image_url) {
+          return {
+            ...movie,
+            poster_url: null
+          };
+        }
+
+        const { data: signedData, error: signedError } =
+          await supabase.storage
+            .from("movie-posters")
+            .createSignedUrl(movie.image_url, 3600);
+
+        if (signedError) {
+          console.error("Помилка URL постера:", signedError);
+        }
+
+        return {
+          ...movie,
+          poster_url: signedData?.signedUrl || null
+        };
+      })
+    );
+
+    setMovies(moviesWithPosters);
+    setLoadingMovies(false);
+  }
+
+  async function saveRating(movieId, rating) {
     if (!session?.user?.id) {
       alert("Потрібно увійти в акаунт ❌");
       return;
@@ -1701,8 +1760,25 @@ function MoviesPage({ couple, session }) {
     } finally {
       setSavingRating(false);
     }
-    }
-    async function saveMovie() {
+  }
+
+  function startEditMovie(movie) {
+    setEditingMovie(movie);
+    setMovieTitle(movie.title || "");
+    setMovieDate(movie.watched_date || "");
+    setMovieFile(null);
+    setShowMovieForm(true);
+  }
+
+  function cancelMovieForm() {
+    setShowMovieForm(false);
+    setEditingMovie(null);
+    setMovieTitle("");
+    setMovieDate("");
+    setMovieFile(null);
+  }
+
+  async function saveMovie() {
     if (!movieTitle.trim()) {
       alert("Введіть назву фільму 🎬");
       return;
@@ -1716,8 +1792,9 @@ function MoviesPage({ couple, session }) {
     setSavingMovie(true);
 
     try {
-      let imageUrl = null;
+      let imageUrl = editingMovie?.image_url || null;
 
+      // Якщо вибрали новий постер
       if (movieFile) {
         const fileExt = movieFile.name.split(".").pop();
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -1733,129 +1810,276 @@ function MoviesPage({ couple, session }) {
           return;
         }
 
+        // Видаляємо старий постер при редагуванні
+        if (editingMovie?.image_url) {
+          const { error: deleteImageError } = await supabase.storage
+            .from("movie-posters")
+            .remove([editingMovie.image_url]);
+
+          if (deleteImageError) {
+            console.error(
+              "Не вдалося видалити старий постер:",
+              deleteImageError
+            );
+          }
+        }
+
         imageUrl = filePath;
       }
 
-      const { error } = await supabase
-        .from("movies")
-        .insert({
-          couple_id: couple.id,
-          title: movieTitle.trim(),
-          image_url: imageUrl,
-          watched_date: movieDate || null,
-          created_by: session?.user?.id || null
-        });
+      if (editingMovie) {
+        const { error } = await supabase
+          .from("movies")
+          .update({
+            title: movieTitle.trim(),
+            image_url: imageUrl,
+            watched_date: movieDate || null
+          })
+          .eq("id", editingMovie.id)
+          .eq("couple_id", couple.id);
 
-      if (error) {
-        console.error(error);
-        alert("Не вдалося зберегти фільм ❌");
-        return;
+        if (error) {
+          console.error(error);
+          alert("Не вдалося змінити фільм ❌");
+          return;
+        }
+
+        alert("Фільм змінено ❤️🎬");
+      } else {
+        const { error } = await supabase
+          .from("movies")
+          .insert({
+            couple_id: couple.id,
+            title: movieTitle.trim(),
+            image_url: imageUrl,
+            watched_date: movieDate || null,
+            created_by: session?.user?.id || null
+          });
+
+        if (error) {
+          console.error(error);
+          alert("Не вдалося зберегти фільм ❌");
+          return;
+        }
+
+        alert("Фільм додано ❤️🎬");
       }
 
-      alert("Фільм додано ❤️🎬");
-
-      setMovieTitle("");
-      setMovieDate("");
-      setMovieFile(null);
-      setShowMovieForm(false);
-
+      cancelMovieForm();
       await loadMovies();
-
     } finally {
       setSavingMovie(false);
     }
-    }
-  async function loadMovies() {
-    if (!couple?.id) return;
-
-    setLoadingMovies(true);
-
-    const { data, error } = await supabase
-      .from("movies")
-      .select("*")
-      .eq("couple_id", couple.id)
-      .order("watched_date", { ascending: false });
-
-    if (error) {
-      console.error("Помилка завантаження фільмів:", error);
-      setLoadingMovies(false);
-      return;
-    }
-
-    setMovies(data || []);
-    setLoadingMovies(false);
   }
 
-      useEffect(() => {
+  async function deleteMovie(movie) {
+    const confirmed = window.confirm(
+      `Видалити фільм "${movie.title}"?`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingMovie(true);
+
+    try {
+      // Видаляємо постер зі Storage
+      if (movie.image_url) {
+        const { error: imageError } = await supabase.storage
+          .from("movie-posters")
+          .remove([movie.image_url]);
+
+        if (imageError) {
+          console.error(
+            "Помилка видалення постера:",
+            imageError
+          );
+        }
+      }
+
+      // Видаляємо сам фільм
+      const { error } = await supabase
+        .from("movies")
+        .delete()
+        .eq("id", movie.id)
+        .eq("couple_id", couple.id);
+
+      if (error) {
+        console.error(error);
+        alert("Не вдалося видалити фільм ❌");
+        return;
+      }
+
+      // Якщо видалили відкритий фільм
+      setMovieViewerIndex(null);
+
+      await loadMovies();
+      await loadRatings();
+    } finally {
+      setDeletingMovie(false);
+    }
+  }
+
+  useEffect(() => {
     loadMovies();
     loadRatings();
     loadMembers();
   }, [couple?.id]);
 
+  // Середні рейтинги
+  const romaMember = members.find(
+    (member) => member.name === "Рома"
+  );
+
+  const dashaMember = members.find(
+    (member) => member.name === "Даша"
+  );
+
+  const romaRatings = romaMember
+    ? ratings.filter((r) => r.user_id === romaMember.id)
+    : [];
+
+  const dashaRatings = dashaMember
+    ? ratings.filter((r) => r.user_id === dashaMember.id)
+    : [];
+
+  const romaAverage =
+    romaRatings.length > 0
+      ? romaRatings.reduce(
+          (sum, r) => sum + Number(r.rating),
+          0
+        ) / romaRatings.length
+      : null;
+
+  const dashaAverage =
+    dashaRatings.length > 0
+      ? dashaRatings.reduce(
+          (sum, r) => sum + Number(r.rating),
+          0
+        ) / dashaRatings.length
+      : null;
+
   return (
     <section style={styles.page}>
       <h1 style={styles.pageTitle}>🎬 Наше кіно</h1>
-      <button
-  type="button"
-  style={styles.primaryButton}
-  onClick={() => setShowMovieForm(true)}
->
-  ➕ Додати фільм
-</button>
-{showMovieForm && (
-  <div style={styles.formCard}>
-    <h2>🎬 Додати фільм</h2>
 
-    <input
-      type="text"
-      placeholder="Назва фільму"
-      value={movieTitle}
-      onChange={(e) => setMovieTitle(e.target.value)}
-      style={styles.input}
-    />
-
-    <input
-      type="date"
-      value={movieDate}
-      onChange={(e) => setMovieDate(e.target.value)}
-      style={styles.input}
-    />
-
-    <label style={styles.fileLabel}>
-      📸 Обрати постер
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => setMovieFile(e.target.files?.[0] || null)}
-        style={{ display: "none" }}
-      />
-    </label>
-
-    {movieFile && (
-      <p style={{ fontSize: "13px", color: "#777" }}>
-        📎 {movieFile.name}
-      </p>
-    )}
-
-    <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
       <button
         type="button"
         style={styles.primaryButton}
-        onClick={saveMovie}
+        onClick={() => {
+          setEditingMovie(null);
+          setMovieTitle("");
+          setMovieDate("");
+          setMovieFile(null);
+          setShowMovieForm(true);
+        }}
       >
-        {savingMovie ? "Зберігаємо..." : "💾 Зберегти"}
+        ➕ Додати фільм
       </button>
 
-      <button
-        type="button"
-        style={styles.secondaryButton}
-        onClick={() => setShowMovieForm(false)}
-      >
-        Скасувати
-      </button>
-    </div>
-  </div>
-)}
+      {showMovieForm && (
+        <div style={styles.formCard}>
+          <h2>
+            {editingMovie
+              ? "✏️ Редагувати фільм"
+              : "🎬 Додати фільм"}
+          </h2>
+
+          <input
+            type="text"
+            placeholder="Назва фільму"
+            value={movieTitle}
+            onChange={(e) =>
+              setMovieTitle(e.target.value)
+            }
+            style={styles.input}
+          />
+
+          <input
+            type="date"
+            value={movieDate}
+            onChange={(e) =>
+              setMovieDate(e.target.value)
+            }
+            style={styles.input}
+          />
+
+          <label style={styles.fileLabel}>
+            📸{" "}
+            {editingMovie
+              ? "Змінити постер"
+              : "Обрати постер"}
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) =>
+                setMovieFile(
+                  e.target.files?.[0] || null
+                )
+              }
+              style={{ display: "none" }}
+            />
+          </label>
+
+          {movieFile && (
+            <p
+              style={{
+                fontSize: "13px",
+                color: "#777"
+              }}
+            >
+              📎 {movieFile.name}
+            </p>
+          )}
+
+          {editingMovie &&
+            editingMovie.poster_url &&
+            !movieFile && (
+              <img
+                src={editingMovie.poster_url}
+                alt={editingMovie.title}
+                style={{
+                  width: "100%",
+                  maxHeight: "280px",
+                  objectFit: "cover",
+                  borderRadius: "16px",
+                  marginTop: "10px"
+                }}
+              />
+            )}
+
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              marginTop: "12px",
+              flexWrap: "wrap"
+            }}
+          >
+            <button
+              type="button"
+              style={styles.primaryButton}
+              onClick={saveMovie}
+              disabled={savingMovie}
+            >
+              {savingMovie
+                ? "Зберігаємо..."
+                : editingMovie
+                ? "💾 Зберегти зміни"
+                : "💾 Зберегти"}
+            </button>
+
+            <button
+              type="button"
+              style={styles.secondaryButton}
+              onClick={cancelMovieForm}
+            >
+              Скасувати
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
           <strong>{movies.length}</strong>
@@ -1863,140 +2087,485 @@ function MoviesPage({ couple, session }) {
         </div>
 
         <div style={styles.statCard}>
-          <strong>— ⭐</strong>
+          <strong>
+            {romaAverage !== null
+              ? `${romaAverage.toFixed(1)} ⭐`
+              : "— ⭐"}
+          </strong>
           <span>Середній рейтинг Роми</span>
         </div>
 
         <div style={styles.statCard}>
-          <strong>— ⭐</strong>
+          <strong>
+            {dashaAverage !== null
+              ? `${dashaAverage.toFixed(1)} ⭐`
+              : "— ⭐"}
+          </strong>
           <span>Середній рейтинг Даші</span>
         </div>
       </div>
 
       {loadingMovies ? (
         <div style={styles.emptyState}>
-          <div style={{ fontSize: "40px" }}>🎬</div>
+          <div style={{ fontSize: "40px" }}>
+            🎬
+          </div>
           <p>Завантажуємо наше кіно...</p>
         </div>
       ) : movies.length === 0 ? (
         <div style={styles.emptyState}>
-          <div style={{ fontSize: "50px" }}>🎞️</div>
+          <div style={{ fontSize: "50px" }}>
+            🎞️
+          </div>
+
           <h2>Поки що немає фільмів</h2>
-          <p>Додайте ваш перший спільний фільм ❤️</p>
+
+          <p>
+            Додайте ваш перший спільний фільм ❤️
+          </p>
         </div>
       ) : (
         <div>
-          {movies.map((movie) => (
-            <article key={movie.id} style={styles.momentCard}>
+          {movies.map((movie, index) => (
+            <article
+              key={movie.id}
+              style={styles.momentCard}
+            >
+              {movie.poster_url && (
+                <img
+                  src={movie.poster_url}
+                  alt={movie.title}
+                  onClick={() =>
+                    setMovieViewerIndex(index)
+                  }
+                  style={{
+                    width: "100%",
+                    height: "360px",
+                    objectFit: "cover",
+                    display: "block",
+                    cursor: "pointer"
+                  }}
+                />
+              )}
+
               <div style={styles.momentContent}>
                 <h2>{movie.title}</h2>
-                                <div style={{ marginTop: "16px" }}>
-  {members.map((member) => {
-    const memberRating = ratings.find(
-      (r) =>
-        r.movie_id === movie.id &&
-        r.user_id === member.id
-    );
 
-    const isMe = member.id === session?.user?.id;
+                {movie.watched_date && (
+                  <div
+                    style={{
+                      marginTop: "6px",
+                      color: "#888",
+                      fontSize: "14px"
+                    }}
+                  >
+                    📅{" "}
+                    {new Date(
+                      `${movie.watched_date}T00:00:00`
+                    ).toLocaleDateString(
+                      "uk-UA"
+                    )}
+                  </div>
+                )}
 
-    return (
-      <div
-        key={member.id}
-        style={{
-          marginBottom: "12px",
-          padding: "12px",
-          borderRadius: "14px",
-          background: "#fff7fa"
-        }}
-      >
-        <div
-          style={{
-            fontWeight: "800",
-            marginBottom: "8px"
-          }}
-        >
-          {member.name === "Рома" ? "❤️" : "💕"}{" "}
-          {member.name}{" "}
-          {memberRating
-            ? `${Number(memberRating.rating)}/10 ⭐`
-            : "ще не оцінив"}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    marginTop: "12px",
+                    flexWrap: "wrap"
+                  }}
+                >
+                  <button
+                    type="button"
+                    style={styles.secondaryButton}
+                    onClick={() =>
+                      startEditMovie(movie)
+                    }
+                  >
+                    ✏️ Редагувати
+                  </button>
+
+                  <button
+                    type="button"
+                    style={{
+                      ...styles.secondaryButton,
+                      color: "#b33",
+                      borderColor: "#e5b5bd"
+                    }}
+                    onClick={() =>
+                      deleteMovie(movie)
+                    }
+                    disabled={deletingMovie}
+                  >
+                    🗑️ Видалити
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "16px"
+                  }}
+                >
+                  {members.map((member) => {
+                    const memberRating =
+                      ratings.find(
+                        (r) =>
+                          r.movie_id === movie.id &&
+                          r.user_id === member.id
+                      );
+
+                    const isMe =
+                      member.id ===
+                      session?.user?.id;
+
+                    return (
+                      <div
+                        key={member.id}
+                        style={{
+                          marginBottom: "12px",
+                          padding: "12px",
+                          borderRadius: "14px",
+                          background: "#fff7fa"
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: "800",
+                            marginBottom: "8px"
+                          }}
+                        >
+                          {member.name === "Рома"
+                            ? "❤️"
+                            : "💕"}{" "}
+                          {member.name}{" "}
+                          {memberRating
+                            ? `${Number(
+                                memberRating.rating
+                              )}/10 ⭐`
+                            : "ще не оцінив"}
+                        </div>
+
+                        {isMe && (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "5px",
+                              flexWrap: "wrap"
+                            }}
+                          >
+                            {[
+                              1, 2, 3, 4, 5,
+                              6, 7, 8, 9, 10
+                            ].map((number) => (
+                              <button
+                                key={number}
+                                type="button"
+                                disabled={
+                                  savingRating
+                                }
+                                onClick={() =>
+                                  saveRating(
+                                    movie.id,
+                                    number
+                                  )
+                                }
+                                style={{
+                                  border: "none",
+                                  borderRadius: "9px",
+                                  padding:
+                                    "6px 9px",
+                                  cursor:
+                                    "pointer",
+                                  background:
+                                    Number(
+                                      memberRating?.rating
+                                    ) === number
+                                      ? "#ffb6c9"
+                                      : "#fff0f4",
+                                  color:
+                                    "#9a5268",
+                                  fontWeight: "800"
+                                }}
+                              >
+                                {number}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {(() => {
+                    const movieRatings =
+                      ratings.filter(
+                        (r) =>
+                          r.movie_id === movie.id
+                      );
+
+                    if (
+                      movieRatings.length === 0
+                    ) {
+                      return null;
+                    }
+
+                    const average =
+                      movieRatings.reduce(
+                        (sum, r) =>
+                          sum +
+                          Number(r.rating),
+                        0
+                      ) /
+                      movieRatings.length;
+
+                    return (
+                      <div
+                        style={{
+                          padding: "12px",
+                          borderRadius:
+                            "14px",
+                          background:
+                            "#fff0f4",
+                          textAlign: "center",
+                          fontWeight: "800",
+                          color: "#9a5268"
+                        }}
+                      >
+                        🎬 Середній рейтинг:{" "}
+                        {average.toFixed(1)} ⭐
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
+      )}
 
-        {isMe && (
+      {/* ВЕЛИКИЙ ПЕРЕГЛЯДАЧ ПОСТЕРІВ */}
+      {movieViewerIndex !== null &&
+        movies[movieViewerIndex] && (
           <div
+            onClick={() =>
+              setMovieViewerIndex(null)
+            }
             style={{
+              position: "fixed",
+          inset: 0,
+              background: "rgba(0,0,0,0.88)",
+              zIndex: 9999,
               display: "flex",
-              gap: "5px",
-              flexWrap: "wrap"
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px"
             }}
           >
-            {[1,2,3,4,5,6,7,8,9,10].map((number) => (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMovieViewerIndex(null);
+              }}
+              style={{
+                position: "absolute",
+                top: "18px",
+                right: "18px",
+                zIndex: 2,
+                width: "44px",
+                height: "44px",
+                border: "none",
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.9)",
+                fontSize: "22px",
+                cursor: "pointer"
+              }}
+            >
+              ✕
+            </button>
+
+            {movieViewerIndex > 0 && (
               <button
-                key={number}
                 type="button"
-                disabled={savingRating}
-                onClick={() => saveRating(movie.id, number)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMovieViewerIndex(
+                    movieViewerIndex - 1
+                  );
+                }}
                 style={{
+                  position: "absolute",
+                  left: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: "46px",
+                  height: "46px",
                   border: "none",
-                  borderRadius: "9px",
-                  padding: "6px 9px",
-                  cursor: "pointer",
+                  borderRadius: "50%",
                   background:
-                    Number(memberRating?.rating) === number
-                      ? "#ffb6c9"
-                      : "#fff0f4",
-                  color: "#9a5268",
-                  fontWeight: "800"
+                    "rgba(255,255,255,0.9)",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  zIndex: 2
                 }}
               >
-                {number}
+                ‹
               </button>
-            ))}
+            )}
+
+            {movieViewerIndex <
+              movies.length - 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMovieViewerIndex(
+                    movieViewerIndex + 1
+                  );
+                }}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform:
+                    "translateY(-50%)",
+                  width: "46px",
+                  height: "46px",
+                  border: "none",
+                  borderRadius: "50%",
+                  background:
+                    "rgba(255,255,255,0.9)",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  zIndex: 2
+                }}
+              >
+                ›
+              </button>
+            )}
+                 <div
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+              style={{
+                maxWidth: "900px",
+                width: "100%",
+                maxHeight: "92vh",
+                textAlign: "center",
+                overflow: "auto"
+              }}
+            >
+              {movies[movieViewerIndex]
+                .poster_url && (
+                <img
+                  src={
+                    movies[movieViewerIndex]
+                      .poster_url
+                  }
+                  alt={
+                    movies[movieViewerIndex]
+                      .title
+                  }
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "72vh",
+                    objectFit: "contain",
+                    borderRadius: "14px"
+                  }}
+                />
+              )}
+
+              <div
+                style={{
+                  color: "white",
+                  marginTop: "12px"
+                }}
+              >
+                <h2
+                  style={{
+                    margin: "0 0 6px"
+                  }}
+                >
+                  {
+                    movies[movieViewerIndex]
+                      .title
+                  }
+                </h2>
+
+                {movies[movieViewerIndex]
+                  .watched_date && (
+                  <div
+                    style={{
+                      opacity: 0.8
+                    }}
+                  >
+                    📅{" "}
+                    {new Date(
+                      `${movies[movieViewerIndex].watched_date}T00:00:00`
+                    ).toLocaleDateString(
+                      "uk-UA"
+                    )}
+                  </div>
+                )}
+                  <div
+                  style={{
+                    marginTop: "8px",
+                    opacity: 0.9
+                  }}
+                >
+                  {(() => {
+                    const currentMovie =
+                      movies[
+                        movieViewerIndex
+                      ];
+
+                    const currentRatings =
+                      ratings.filter(
+                        (r) =>
+                          r.movie_id ===
+                          currentMovie.id
+                      );
+
+                    if (
+                      currentRatings.length ===
+                      0
+                    ) {
+                      return "⭐ Оцінок ще немає";
+                    }
+
+                    const avg =
+                      currentRatings.reduce(
+                        (sum, r) =>
+                          sum +
+                          Number(r.rating),
+                        0
+                      ) /
+                      currentRatings.length;
+
+                    return `⭐ Середній рейтинг: ${avg.toFixed(
+                      1
+                    )}/10`;
+                  })()}
+                </div>
+                    <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "13px",
+                    opacity: 0.65
+                  }}
+                >
+                  {movieViewerIndex + 1} /{" "}
+                  {movies.length}
+                </div>
+              </div>
+            </div>
           </div>
         )}
-      </div>
-    );
-  })}
-
-  {(() => {
-    const movieRatings = ratings.filter(
-      (r) => r.movie_id === movie.id
-    );
-
-    if (movieRatings.length === 0) return null;
-
-    const average =
-      movieRatings.reduce(
-        (sum, r) => sum + Number(r.rating),
-        0
-      ) / movieRatings.length;
-
-    return (
-      <div
-        style={{
-          padding: "12px",
-          borderRadius: "14px",
-          background: "#fff0f4",
-          textAlign: "center",
-          fontWeight: "800",
-          color: "#9a5268"
-        }}
-      >
-        🎬 Середній рейтинг: {average.toFixed(1)} ⭐
-      </div>
-    );
-  })()}
-</div>
-        </div>
-      </article>
-    ))}
-    </div>
-  )}
-
     </section>
   );
 }
+
 function DreamsPage({couple}) {
   const [dreams, setDreams] = useState([]);
   const [showForm, setShowForm] = useState(false);
