@@ -379,6 +379,9 @@ function MomentsPage({
   const [file, setFile] = useState(null);
   const [editingMoment, setEditingMoment] = useState(null);
   const [galleryIndex, setGalleryIndex] = useState(null);
+  function openGallery(index) {
+  setGalleryIndex(index);
+  }
 function startEditMoment(moment) {
   setEditingMoment(moment);
   setTitle(moment.title || "");
@@ -529,23 +532,15 @@ function startEditMoment(moment) {
           {moments.map(m => (
             <article key={m.id} style={styles.momentCard}>
               {m.image_url && (
-  <img
-    src={m.image_url}
-    alt={m.title}
-    style={{
-      ...styles.momentImage,
-      cursor: "pointer"
-    }}
-    onClick={() => {
-      console.log("Клік по фото:", m);
-      setGalleryIndex(
-        moments
-          .filter(item => item.image_url)
-          .findIndex(item => item.id === m.id)
-      );
-    }}
-  />
-)} 
+ <img
+  src={m.image_url}
+  onClick={() => openGallery(index)}
+  alt={m.title}
+  style={{
+    ...styles.momentImage,
+    cursor: "pointer"
+  }}
+/>
 
               <div style={styles.momentContent}>
                 <div style={styles.momentDate}>📅 {m.moment_date}</div>
