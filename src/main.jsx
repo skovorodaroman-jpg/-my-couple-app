@@ -529,22 +529,27 @@ function startEditMoment(moment) {
         </div>
       ) : (
         <div style={styles.momentsList}>
-          {moments.map(m => (
-            <article key={m.id} style={styles.momentCard}>
-              {m.image_url && (
- <img
-  src={m.image_url}
-  onClick={() => openGallery(index)}
-  alt={m.title}
-  style={{
-    ...styles.momentImage,
-    cursor: "pointer"
-  }}
-/>
+          {moments.map((m, index) => (
+  <article key={m.id} style={styles.momentCard}>
+    {m.image_url && (
+      <img
+        src={m.image_url}
+        onClick={() => openGallery(index)}
+        alt={m.title}
+        style={{
+          ...styles.momentImage,
+          cursor: "pointer"
+        }}
+      />
+    )}
 
-              <div style={styles.momentContent}>
-                <div style={styles.momentDate}>📅 {m.moment_date}</div>
-                <h3 style={styles.momentTitle}>{m.title}</h3>
+    <div style={styles.momentContent}>
+      <div style={styles.momentDate}>📅 {m.moment_date}</div>
+      <h3 style={styles.momentTitle}>{m.title}</h3>
+
+      {m.description && (
+        <p style={styles.momentDescription}>{m.description}</p>
+      )}
 
                 {m.description && (
                   <p style={styles.momentDescription}>{m.description}</p>
