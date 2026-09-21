@@ -1614,6 +1614,69 @@ function MoviesPage({ couple, session }) {
   const [movieFile, setMovieFile] = useState(null);
   const [savingMovie, setSavingMovie] = useState(false);
 
+    async function saveMovie() {
+    if (!movieTitle.trim()) {
+      alert("Введіть назву фільму 🎬");
+      return;
+    }
+
+    if (!couple?.id) {
+      alert("Не знайдено вашу пару ❌");
+      return;
+    }
+
+    setSavingMovie(true);
+
+    try {
+      let imageUrl = null;
+
+      if (movieFile) {
+        const fileExt = movieFile.name.split(".").pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const filePath = `${couple.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("movie-posters")
+          .upload(filePath, movieFile);
+
+        if (uploadError) {
+          console.error(uploadError);
+          alert("Не вдалося завантажити постер ❌");
+          return;
+        }
+
+        imageUrl = filePath;
+      }
+
+      const { error } = await supabase
+        .from("movies")
+        .insert({
+          couple_id: couple.id,
+          title: movieTitle.trim(),
+          image_url: imageUrl,
+          watched_date: movieDate || null,
+          created_by: session?.user?.id || null
+        });
+
+      if (error) {
+        console.error(error);
+        alert("Не вдалося зберегти фільм ❌");
+        return;
+      }
+
+      alert("Фільм додано ❤️🎬");
+
+      setMovieTitle("");
+      setMovieDate("");
+      setMovieFile(null);
+      setShowMovieForm(false);
+
+      await loadMovies();
+
+    } finally {
+      setSavingMovie(false);
+    }
+    }
   async function loadMovies() {
     if (!couple?.id) return;
 
@@ -1688,9 +1751,9 @@ function MoviesPage({ couple, session }) {
       <button
         type="button"
         style={styles.primaryButton}
-        onClick={() => alert("Збереження додамо наступним кроком 🎬❤️")}
+        onClick={saveMovie}
       >
-        💾 Зберегти
+        {savingMovie ? "Зберігаємо..." : "💾 Зберегти"}
       </button>
 
       <button
