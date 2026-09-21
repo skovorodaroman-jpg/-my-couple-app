@@ -66,9 +66,18 @@ function App() {
       if (profileError) console.error(profileError);
       setProfile(profileData);
 
-      const { data: memberData, error: memberError } = await supabase.from("couple_members").select("couple_id").eq("user_id", currentSession.user.id).single();
-      if (memberError || !memberData) { console.error(memberError); return; }
+      const { data: memberData, error: memberError } = await supabase
+  .from("couple_members")
+  .select("couple_id")
+  .eq("user_id", currentSession.user.id)
+  .maybeSingle();
 
+if (!memberData) {
+  setCouple(null);
+  setSettings(null);
+  setLoading(false);
+  return;
+}
       const { data: coupleData, error: coupleError } = await supabase.from("couples").select("*").eq("id", memberData.couple_id).single();
       if (coupleError) console.error(coupleError);
       setCouple(coupleData);
