@@ -2666,6 +2666,7 @@ function MoviesPage({ couple, session }) {
           </div>
         )}
        </div>
+      )}
     </section>
   );
 }
