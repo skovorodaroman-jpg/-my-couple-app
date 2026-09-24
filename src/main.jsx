@@ -2128,6 +2128,8 @@ function MoviesPage({ couple, session }) {
       ) : (
         <div>
           <div
+            )}
+</section>
   style={{
     display: "grid",
     gridTemplateColumns:
@@ -2665,7 +2667,7 @@ function MoviesPage({ couple, session }) {
             </div>
           </div>
         )}
-       
+       </div>
     </section>
   );
 }
