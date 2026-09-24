@@ -2128,8 +2128,6 @@ function MoviesPage({ couple, session }) {
       ) : (
         <div>
           <div
-            )}
-</section>
   style={{
     display: "grid",
     gridTemplateColumns:
