@@ -413,13 +413,599 @@ async function joinCoupleByCode(code) {
   />
 )}
       {page === "movies" && <MoviesPage couple={couple} session={session} />}
-  {page === "dreams" && <DreamsPage couple={couple} />}
+  {page === "dreams" && <DreamsPage couple={couple} />} {page === "date" && <DateIdeasPage />}
       {page === "settings" && <SettingsPage profile={profile} couple={couple} isAdmin={isAdmin} startDate={startDate} setStartDate={setStartDate} partnerName={partnerName} setPartnerName={setPartnerName} saveSettings={saveSettings} saving={saving} logout={logout} />}
     </main>
     <nav style={styles.bottomNav}>{[["home","❤️","Головна"],["moments","📸","Моменти"],["movies","🎬","Кіно"],["calendar","📅","Календар"], ["date","💕","Побачення"],["dreams","✨","Мрії"],["settings","⚙️","Налаштування"]].map(([target,icon,label]) => <button key={target} style={{...styles.navButton,...(page === target ? styles.navActive : {})}} onClick={() => setPage(target)}><span>{icon}</span><small>{label}</small></button>)}</nav>
   </div>;
 }
+function DateIdeasPage() {
+  const dates = [
+    {
+      title: "🌹 Романтичний вечір удвох",
+      description:
+        "Свічки, улюблена музика, щось смачненьке та вечір, присвячений тільки вам двом.",
+      place: "Вдома",
+      mood: "Романтичне",
+      budget: "До 300 грн",
+      duration: "1–2 години"
+    },
+    {
+      title: "🎬 Домашній кінотеатр",
+      description:
+        "Плед, подушки, попкорн, улюблений фільм і багато обіймів.",
+      place: "Вдома",
+      mood: "Затишне",
+      budget: "До 300 грн",
+      duration: "2–3 години"
+    },
+    {
+      title: "☕ Кава та розмови",
+      description:
+        "Знайдіть затишну кав'ярню та поговоріть про ваші мрії, майбутнє і найкращі моменти.",
+      place: "Кав'ярня",
+      mood: "Затишне",
+      budget: "300–600 грн",
+      duration: "1–2 години"
+    },
+    {
+      title: "🌅 Вечірня прогулянка",
+      description:
+        "Прогуляйтеся разом, купіть щось смачне та зробіть кілька спільних фотографій.",
+      place: "На вулиці",
+      mood: "Спокійне",
+      budget: "До 300 грн",
+      duration: "1–2 години"
+    },
+    {
+      title: "🍕 Побачення з піцою",
+      description:
+        "Замовте улюблену піцу, виберіть фільм і влаштуйте затишний вечір.",
+      place: "Вдома",
+      mood: "Веселе",
+      budget: "300–600 грн",
+      duration: "2–3 години"
+    },
+    {
+      title: "🍓 Полуниця та шоколад",
+      description:
+        "Купіть полуницю, шоколад та напої й приготуйте разом романтичний десерт.",
+      place: "Вдома",
+      mood: "Романтичне",
+      budget: "300–600 грн",
+      duration: "1–2 години"
+    },
+    {
+      title: "📸 Наш фотодень",
+      description:
+        "Красиво одягніться, гуляйте містом та фотографуйте одне одного.",
+      place: "На вулиці",
+      mood: "Веселе",
+      budget: "До 300 грн",
+      duration: "2–3 години"
+    },
+    {
+      title: "🎁 Побачення-сюрприз",
+      description:
+        "Один із вас готує маленький сюрприз для іншого — квітку, записку або подарунок.",
+      place: "Сюрприз",
+      mood: "Романтичне",
+      budget: "600–1000 грн",
+      duration: "2–3 години"
+    },
+    {
+      title: "🍳 Готуємо разом",
+      description:
+        "Виберіть нову страву та приготуйте її разом від початку до кінця.",
+      place: "Вдома",
+      mood: "Веселе",
+      budget: "300–600 грн",
+      duration: "2–3 години"
+    },
+    {
+      title: "🌙 Нічна прогулянка",
+      description:
+        "Спокійна вечірня прогулянка, розмови про вас і трохи романтики.",
+      place: "На вулиці",
+      mood: "Романтичне",
+      budget: "До 300 грн",
+      duration: "1–2 години"
+    },
+    {
+      title: "🛍️ Купуємо подарунки одне одному",
+      description:
+        "Кожен отримує невеликий бюджет і купує іншому маленький сюрприз.",
+      place: "Магазини",
+      mood: "Веселе",
+      budget: "600–1000 грн",
+      duration: "2–3 години"
+    },
+    {
+      title: "❤️ День без телефонів",
+      description:
+        "Відкладіть телефони та проведіть кілька годин повністю одне з одним.",
+      place: "Вдома",
+      mood: "Спокійне",
+      budget: "До 300 грн",
+      duration: "3+ години"
+    },
+    {
+      title: "🍰 Кондитерська",
+      description:
+        "Знайдіть красиве місце, замовте десерт і зробіть кілька милих фотографій.",
+      place: "Кав'ярня",
+      mood: "Затишне",
+      budget: "300–600 грн",
+      duration: "1–2 години"
+    },
+    {
+      title: "🎳 Веселе побачення",
+      description:
+        "Боулінг, більярд або інша активність, де можна посміятися та позмагатися.",
+      place: "Розваги",
+      mood: "Веселе",
+      budget: "600–1000 грн",
+      duration: "2–3 години"
+    },
+    {
+      title: "🌸 Квіти одне одному",
+      description:
+        "Кожен купує іншому квітку, а потім разом гуляєте та говорите про ваші стосунки.",
+      place: "На вулиці",
+      mood: "Романтичне",
+      budget: "300–600 грн",
+      duration: "1–2 години"
+    },
+    {
+      title: "🍿 Вечір настільних ігор",
+      description:
+        "Оберіть кілька ігор, приготуйте смаколики та влаштуйте домашній турнір.",
+      place: "Вдома",
+      mood: "Веселе",
+      budget: "До 300 грн",
+      duration: "2–3 години"
+    },
+    {
+      title: "🥂 Особливий вечір",
+      description:
+        "Красивий одяг, свічки, вечеря та особлива атмосфера тільки для вас двох.",
+      place: "Вдома",
+      mood: "Романтичне",
+      budget: "600–1000 грн",
+      duration: "3+ години"
+    },
+    {
+      title: "🌆 Досліджуємо місто",
+      description:
+        "Виберіть місце, де ви ще ніколи разом не були, і вирушайте туди.",
+      place: "На вулиці",
+      mood: "Пригодницьке",
+      budget: "300–600 грн",
+      duration: "3+ години"
+    },
+    {
+      title: "🧁 Готуємо десерт",
+      description:
+        "Разом приготуйте торт, печиво або інший десерт і влаштуйте маленьку дегустацію.",
+      place: "Вдома",
+      mood: "Веселе",
+      budget: "До 300 грн",
+      duration: "2–3 години"
+    },
+    {
+      title: "💌 Побачення з любовними записками",
+      description:
+        "Напишіть одне одному по кілька маленьких любовних записок та відкривайте їх протягом вечора.",
+      place: "Вдома",
+      mood: "Романтичне",
+      budget: "До 300 грн",
+      duration: "2–3 години"
+    }
+  ];
 
+  const [budget, setBudget] = useState("Всі");
+  const [place, setPlace] = useState("Всі");
+  const [mood, setMood] = useState("Всі");
+  const [duration, setDuration] = useState("Всі");
+  const [currentDate, setCurrentDate] = useState(null);
+
+  const filteredDates = dates.filter((date) => {
+    const budgetMatch =
+      budget === "Всі" || date.budget === budget;
+
+    const placeMatch =
+      place === "Всі" || date.place === place;
+
+    const moodMatch =
+      mood === "Всі" || date.mood === mood;
+
+    const durationMatch =
+      duration === "Всі" || date.duration === duration;
+
+    return (
+      budgetMatch &&
+      placeMatch &&
+      moodMatch &&
+      durationMatch
+    );
+  });
+
+  function generateDate() {
+    if (filteredDates.length === 0) {
+      setCurrentDate(null);
+      return;
+    }
+
+    const randomIndex = Math.floor(
+      Math.random() * filteredDates.length
+    );
+
+    setCurrentDate(filteredDates[randomIndex]);
+  }
+
+  function resetFilters() {
+    setBudget("Всі");
+    setPlace("Всі");
+    setMood("Всі");
+    setDuration("Всі");
+    setCurrentDate(null);
+  }
+
+  const selectStyle = {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "13px",
+    border: "1px solid #f0dfe5",
+    background: "#fff",
+    fontSize: "14px",
+    outline: "none"
+  };
+
+  return (
+    <div style={styles.page}>
+
+      {/* ЗАГОЛОВОК */}
+      <div
+        style={{
+          textAlign: "center",
+          marginBottom: "18px"
+        }}
+      >
+        <div style={{ fontSize: "45px" }}>
+          💕
+        </div>
+
+        <h2 style={{ margin: "5px 0" }}>
+          Наші побачення
+        </h2>
+
+        <p
+          style={{
+            color: "#888",
+            margin: 0,
+            lineHeight: 1.5
+          }}
+        >
+          Оберіть настрій — а ми придумаємо,
+          <br />
+          як провести час разом ❤️
+        </p>
+      </div>
+
+      {/* ФІЛЬТРИ */}
+      <div
+        style={{
+          background: "#fff",
+          padding: "18px",
+          borderRadius: "20px",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+          marginBottom: "18px"
+        }}
+      >
+        <h3
+          style={{
+            marginTop: 0,
+            marginBottom: "15px"
+          }}
+        >
+          🎯 Оберіть параметри
+        </h3>
+
+        {/* БЮДЖЕТ */}
+        <div style={{ marginBottom: "12px" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "6px",
+              fontSize: "13px",
+              color: "#777"
+            }}
+          >
+            💰 Бюджет
+          </label>
+
+          <select
+            value={budget}
+            onChange={(e) => {
+              setBudget(e.target.value);
+              setCurrentDate(null);
+            }}
+            style={selectStyle}
+          >
+            <option>Всі</option>
+            <option>До 300 грн</option>
+            <option>300–600 грн</option>
+            <option>600–1000 грн</option>
+          </select>
+        </div>
+
+        {/* МІСЦЕ */}
+        <div style={{ marginBottom: "12px" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "6px",
+              fontSize: "13px",
+              color: "#777"
+            }}
+          >
+            📍 Де?
+          </label>
+
+          <select
+            value={place}
+            onChange={(e) => {
+              setPlace(e.target.value);
+              setCurrentDate(null);
+            }}
+            style={selectStyle}
+          >
+            <option>Всі</option>
+            <option>Вдома</option>
+            <option>На вулиці</option>
+            <option>Кав'ярня</option>
+            <option>Магазини</option>
+            <option>Розваги</option>
+            <option>Сюрприз</option>
+          </select>
+        </div>
+
+        {/* НАСТРІЙ */}
+        <div style={{ marginBottom: "12px" }}>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "6px",
+              fontSize: "13px",
+              color: "#777"
+            }}
+          >
+            ❤️ Настрій
+          </label>
+
+          <select
+            value={mood}
+            onChange={(e) => {
+              setMood(e.target.value);
+              setCurrentDate(null);
+            }}
+            style={selectStyle}
+          >
+            <option>Всі</option>
+            <option>Романтичне</option>
+            <option>Затишне</option>
+            <option>Веселе</option>
+            <option>Спокійне</option>
+            <option>Пригодницьке</option>
+          </select>
+        </div>
+
+        {/* ТРИВАЛІСТЬ */}
+        <div>
+          <label
+            style={{
+              display: "block",
+              marginBottom: "6px",
+              fontSize: "13px",
+              color: "#777"
+            }}
+          >
+            ⏰ Скільки часу?
+          </label>
+
+          <select
+            value={duration}
+            onChange={(e) => {
+              setDuration(e.target.value);
+              setCurrentDate(null);
+            }}
+            style={selectStyle}
+          >
+            <option>Всі</option>
+            <option>1–2 години</option>
+            <option>2–3 години</option>
+            <option>3+ години</option>
+          </select>
+        </div>
+
+        {/* СКІЛЬКИ ЗНАЙДЕНО */}
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "14px",
+            color: "#999",
+            fontSize: "13px"
+          }}
+        >
+          Знайдено побачень:{" "}
+          <b>{filteredDates.length}</b>
+        </div>
+      </div>
+
+      {/* РЕЗУЛЬТАТ */}
+      {currentDate && (
+        <div
+          style={{
+            background: "#fff",
+            padding: "22px",
+            borderRadius: "22px",
+            boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
+            marginBottom: "18px"
+          }}
+        >
+          <div
+            style={{
+              fontSize: "26px",
+              fontWeight: "800",
+              marginBottom: "12px"
+            }}
+          >
+            {currentDate.title}
+          </div>
+
+          <p
+            style={{
+              color: "#777",
+              lineHeight: 1.6,
+              marginTop: 0
+            }}
+          >
+            {currentDate.description}
+          </p>
+
+          <div
+            style={{
+              background: "#fff7fa",
+              borderRadius: "15px",
+              padding: "14px",
+              lineHeight: 2
+            }}
+          >
+            <div>
+              📍 <b>Місце:</b> {currentDate.place}
+            </div>
+
+            <div>
+              ❤️ <b>Настрій:</b> {currentDate.mood}
+            </div>
+
+            <div>
+              💰 <b>Бюджет:</b> {currentDate.budget}
+            </div>
+
+            <div>
+              ⏰ <b>Тривалість:</b> {currentDate.duration}
+            </div>
+          </div>
+
+          <button
+            onClick={generateDate}
+            style={{
+              width: "100%",
+              marginTop: "16px",
+              padding: "14px",
+              border: "none",
+              borderRadius: "15px",
+              background: "#ff6f91",
+              color: "#fff",
+              fontSize: "15px",
+              fontWeight: "700",
+              cursor: "pointer"
+            }}
+          >
+            🔄 Інше побачення
+          </button>
+        </div>
+      )}
+
+      {/* ЯКЩО НЕМАЄ ВАРІАНТІВ */}
+      {filteredDates.length === 0 && (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "20px",
+            padding: "25px",
+            textAlign: "center",
+            color: "#777",
+            marginBottom: "18px"
+          }}
+        >
+          <div style={{ fontSize: "45px" }}>
+            🥺
+          </div>
+
+          <h3>
+            Таких побачень поки немає
+          </h3>
+
+          <p>
+            Спробуйте змінити фільтри ❤️
+          </p>
+
+          <button
+            onClick={resetFilters}
+            style={{
+              padding: "12px 20px",
+              border: "none",
+              borderRadius: "14px",
+              background: "#ff6f91",
+              color: "#fff",
+              fontWeight: "700",
+              cursor: "pointer"
+            }}
+          >
+            🔄 Скинути фільтри
+          </button>
+        </div>
+      )}
+
+      {/* ГЕНЕРАЦІЯ */}
+      {filteredDates.length > 0 && !currentDate && (
+        <button
+          onClick={generateDate}
+          style={{
+            width: "100%",
+            padding: "16px",
+            border: "none",
+            borderRadius: "17px",
+            background: "#ff6f91",
+            color: "#fff",
+            fontSize: "17px",
+            fontWeight: "800",
+            cursor: "pointer",
+            boxShadow:
+              "0 7px 18px rgba(255,111,145,0.25)"
+          }}
+        >
+          💕 Згенерувати побачення
+        </button>
+      )}
+
+      {/* СКИНУТИ */}
+      {(budget !== "Всі" ||
+        place !== "Всі" ||
+        mood !== "Всі" ||
+        duration !== "Всі") && (
+        <button
+          onClick={resetFilters}
+          style={{
+            width: "100%",
+            marginTop: "10px",
+            padding: "11px",
+            border: "none",
+            borderRadius: "14px",
+            background: "#f5f5f5",
+            color: "#777",
+            fontWeight: "600",
+            cursor: "pointer"
+          }}
+        >
+          ↺ Скинути всі фільтри
+        </button>
+      )}
+    </div>
+  );
+}
 function HomePage({ profile, couple, partnerName, loveTime, setPage, moments }) {
   const userName = profile?.name || "Рома";
   return <div>
