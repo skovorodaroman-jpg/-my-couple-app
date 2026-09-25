@@ -27,6 +27,21 @@
     <!-- React -->
     <script type="module" src="/src/main.jsx"></script>
 
+    <!-- PWA Service Worker -->
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/service-worker.js")
+                    .then(() => {
+                        console.log("PWA Service Worker registered ❤️");
+                    })
+                    .catch((error) => {
+                        console.error("PWA Service Worker error:", error);
+                    });
+            });
+        }
+    </script>
+
 </body>
 
 </html>
