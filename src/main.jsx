@@ -629,7 +629,7 @@ function DateIdeasPage() {
       durationMatch
     );
   });
-'
+
 function DateIdeasPage() {
   const dates = [
     // 🏠 ВДОМА — 30
